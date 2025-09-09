@@ -3,7 +3,11 @@ Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: datefixer is an R package for Bayesian estimation of event dates
+ and delay distributions using epidemiological line-list data. It is designed
+ to handle commonly encountered issues with line-list datasets during outbreaks,
+ including missing event dates (e.g., symptom onset, hospitalisation, or death)
+ and errors in recorded dates.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
