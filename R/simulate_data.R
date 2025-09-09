@@ -173,7 +173,7 @@ simulate_data <- function(n_per_group,
   ))
 }
 
-#' Create error_indicators using error_params
+## Create error_indicators using error_params
 add_observation_errors <- function(true_data, error_params, range_dates) {
 
   observed_data <- true_data
