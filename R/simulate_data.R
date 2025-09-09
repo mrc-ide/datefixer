@@ -12,16 +12,17 @@
 #' @param range_dates A vector of two integer dates for the simulation range.
 #' @param simul_error Boolean. If TRUE, simulates missing and erroneous data.
 #'
-#' @importFrom igraph topo_sort graph_from_data_frame
+#' @importFrom igraph topo_sort graph_from_data_frame degree
 #' @import dplyr
 #' @importFrom purrr map_dfr
+#' @importFrom stats rgamma
 #'
 #' @return A list with three data frames: `true_data`, `observed_data`, and
 #'   `error_indicators`, each including `id` and `group` columns.
 #'
 #' @export
 #'
-#' @example
+#' @examples
 #' # Define the delay_map data frame
 #' delay_map <- data.frame(
 #'   from = c("onset", "onset", "onset",
