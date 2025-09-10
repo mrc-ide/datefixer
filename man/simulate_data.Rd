@@ -20,8 +20,8 @@ simulate_data(
 contain the columns \code{from} (character), \code{to} (character), and \code{group} (list
 of numeric group IDs).}
 
-\item{delay_params}{A data frame containing the parameters (\code{delay_mean},
-\code{delay_cv}) for each delay. Consider combining delay_map and delay_params?}
+\item{delay_params}{A data frame containing the parameters (\code{mean_delay},
+\code{cv_delay}) for each delay. Consider combining delay_map and delay_params?}
 
 \item{error_params}{A list containing \code{prop_missing_data} and \code{prob_error}.}
 
@@ -53,8 +53,8 @@ delay_params <- data.frame(
            "hospitalisation", "onset", "hospitalisation"),
   to = c("report", "report", "report", "report", "death", "hospitalisation",
          "discharge", "hospitalisation", "death"),
-  delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-  delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+  mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+  cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 )
 
 # Define other parameters

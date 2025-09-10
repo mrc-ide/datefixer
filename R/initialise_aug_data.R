@@ -48,8 +48,8 @@ calculate_transitive_steps <- function(delay_map) {
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "report", "report", "report", "death", "hospitalisation",
 #'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+#'   mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+#'   cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 #' )
 #' quantile_range <- c(0.01, 0.99)
 #' calculate_delay_boundaries(delay_params, quantile_range)
@@ -57,8 +57,8 @@ calculate_transitive_steps <- function(delay_map) {
 calculate_delay_boundaries <- function(delay_params, quantile_range) {
   delay_params %>%
     mutate(
-      shape = (1 / delay_cv)^2,
-      scale = delay_mean / shape,
+      shape = (1 / cv_delay)^2,
+      scale = mean_delay / shape,
       # find the delay values at the specified quantiles
       min_delay = qgamma(quantile_range[1], shape = shape, scale = scale),
       max_delay = qgamma(quantile_range[2], shape = shape, scale = scale)
@@ -230,8 +230,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "report", "report", "report", "death", "hospitalisation",
 #'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+#'   mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+#'   cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 #' )
 #'
 #' # Define other parameters

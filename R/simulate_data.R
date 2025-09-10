@@ -6,8 +6,8 @@
 #' @param delay_map A data frame that defines the delays between events. It must
 #'   contain the columns `from` (character), `to` (character), and `group` (list
 #'   of numeric group IDs).
-#' @param delay_params A data frame containing the parameters (`delay_mean`,
-#'  `delay_cv`) for each delay. Consider combining delay_map and delay_params?
+#' @param delay_params A data frame containing the parameters (`mean_delay`,
+#'  `cv_delay`) for each delay. Consider combining delay_map and delay_params?
 #' @param error_params A list containing `prop_missing_data` and `prob_error`.
 #' @param range_dates A vector of two integer dates for the simulation range.
 #' @param simul_error Boolean. If TRUE, simulates missing and erroneous data.
@@ -39,8 +39,8 @@
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "report", "report", "report", "death", "hospitalisation",
 #'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+#'   mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+#'   cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 #' )
 #'
 #' # Define other parameters
@@ -114,8 +114,8 @@ simulate_data <- function(n_per_group,
       )
 
       # Sample the delay
-      shape <- (1 / params$delay_cv)^2
-      scale <- params$delay_mean / shape
+      shape <- (1 / params$cv_delay)^2
+      scale <- params$mean_delay / shape
       delay <- pmax(0, round(rgamma(1, shape = shape, scale = scale)))
       true_data[i, to_event] <- true_data[i, from_event] + delay
     }

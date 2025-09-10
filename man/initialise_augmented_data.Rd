@@ -43,8 +43,8 @@ delay_params <- data.frame(
            "hospitalisation", "onset", "hospitalisation"),
   to = c("report", "report", "report", "report", "death", "hospitalisation",
          "discharge", "hospitalisation", "death"),
-  delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-  delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+  mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+  cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 )
 
 # Define other parameters
