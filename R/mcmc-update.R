@@ -9,5 +9,5 @@ update_prob_error <- function(state_chain, model, rng) {
   state_chain$pars[i] <- 
     monty::monty_random_beta(n_errors + shape1, n_non_errors + shape2, rng)
   
-  state
+  state_chain
 }
