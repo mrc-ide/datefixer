@@ -115,7 +115,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
 
   group_delay_map <- delay_map[sapply(delay_map$group,
                                       function(g) current_group %in% g), ]
-  group_delay_boundaries <- subset(delay_boundaries, group == current_group)
+  group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
+                                                    function(g) current_group %in% g), ]
 
   # Find all incompatible delays (direct and transitive)
   group_transitive_steps <- calculate_transitive_steps(group_delay_map)
@@ -266,9 +267,17 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
 #' aug_dat$augmented_data
 #' aug_dat$error_indicators
 #'
-initialise_augmented_data <- function(observed_data, delay_map,
-                                      delay_params, init_settings) {
-
+initialise_augmented_data <- function(model, control) {
+  
+  observed_data <- model$observed_data
+  delay_map <- model$delays
+  delay_params <- model$delays
+  delay_params$delay_mean <- 7
+  delay_params$delay_cv <- 0.25
+  init_settings <- list(quantile_range = c(control$lower_quantile,
+                                           control$upper_quantile))
+  
+  
   delay_boundaries <- calculate_delay_boundaries(delay_params,
                                                  init_settings$quantile_range)
 
@@ -291,9 +300,16 @@ initialise_augmented_data <- function(observed_data, delay_map,
       TRUE ~ FALSE
     )
   }
+  
+  dates <- setdiff(names(observed_data), c("id", "group"))
+  groups <- observed_data$group
+  observed_data <- observed_data[, dates]
+  augmented_data <- augmented_data[, dates]
+  error_indicators <- error_indicators[, dates]
 
-  return(list(
-    augmented_data = augmented_data,
-    error_indicators = error_indicators
-  ))
+  model$observed_data <- observed_data
+  model$augmented_data <- augmented_data
+  model$error_indicators <- error_indicators
+  
+  model
 }
