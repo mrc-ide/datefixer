@@ -110,7 +110,7 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 #' #  1     3 2025-05-01      2025-05-07 2025-05-20
 #'
 initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
-  browser()
+  
   current_group <- individual_data$group
 
   group_delay_map <- delay_map[sapply(delay_map$group,
