@@ -28,7 +28,8 @@ mcmc_run <- function(observed_data,
     parameters = parameters,
     density = function(pars) 0))
   
-  model$observed_data <- observed_data 
+  model$groups <- observed_data$group
+  model$observed_dates <- observed_dates_to_int(observed_data)
   model$delays <- delays
   model$hyperparameters <- hyperparameters
   
@@ -137,4 +138,12 @@ mcmc_hyperparameters <- function(prob_error_shape1 = 1,
        prob_error_shape2 = prob_error_shape2,
        mean_delay_scale = mean_delay_scale,
        cv_delay_scale = cv_delay_scale)
+}
+
+observed_dates_to_int <- function(data) {
+  dates <- setdiff(names(data), c("id", "group"))
+  
+  observed_dates <- data[, dates]
+  
+  as.data.frame(apply(observed_dates, c(1, 2), date_to_int))
 }

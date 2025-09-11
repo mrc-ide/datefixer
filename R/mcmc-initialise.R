@@ -117,6 +117,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
                                       function(g) current_group %in% g), ]
   group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
                                                     function(g) current_group %in% g), ]
+  group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
 
   # Find all incompatible delays (direct and transitive)
   group_transitive_steps <- calculate_transitive_steps(group_delay_map)
@@ -183,7 +184,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
   # Impute missing dates - find nicer way to do this?
   max_iter <- 10
   iter <- 0
-  while(any(is.na(individual_data)) && iter < max_iter) {
+  while(any(is.na(individual_data[, group_dates])) && iter < max_iter) {
     for (j in seq_len(nrow(group_delay_boundaries))) {
       from_event <- group_delay_boundaries$from[j]
       to_event <- group_delay_boundaries$to[j]
@@ -200,7 +201,9 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
     iter <- iter + 1
   }
 
-  return(individual_data)
+  individual_data[, group_dates] <- individual_data[, group_dates] + 0.5
+  
+  individual_data
 }
 
 #' Initialises augmented data based on observed data
@@ -269,7 +272,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
 #'
 initialise_augmented_data <- function(model, control) {
   
-  observed_data <- model$observed_data
+  observed_dates <- model$observed_dates
+  groups <- model$groups
   delay_map <- model$delays
   delay_params <- model$delays
   delay_params$delay_mean <- 7
@@ -282,33 +286,22 @@ initialise_augmented_data <- function(model, control) {
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
-  augmented_data <- observed_data %>%
+  true_dates <- observed_dates
+  true_dates$group <- groups
+  true_dates$id <- seq_len(nrow(true_dates))
+  true_dates <- true_dates %>%
     group_by(id) %>%
     group_modify(~ initialise_row(.x, delay_map, delay_boundaries))
 
   # Keep as tibble or covert to data frame?
-  augmented_data <- as.data.frame(augmented_data)
+  true_dates <- as.data.frame(true_dates)
+  date_cols <- names(observed_dates)
+  true_dates <- true_dates[, date_cols]
 
   # Create the error indicators
-  error_indicators <- observed_data
-  date_cols <- setdiff(names(observed_data), c("id", "group"))
-
-  for (col in date_cols) {
-    error_indicators[[col]] <- case_when(
-      is.na(observed_data[[col]]) ~ NA,
-      observed_data[[col]] != augmented_data[[col]] ~ TRUE,
-      TRUE ~ FALSE
-    )
-  }
+  error_indicators <- as.data.frame(observed_dates != floor(true_dates))
   
-  dates <- setdiff(names(observed_data), c("id", "group"))
-  groups <- observed_data$group
-  observed_data <- observed_data[, dates]
-  augmented_data <- augmented_data[, dates]
-  error_indicators <- error_indicators[, dates]
-
-  model$observed_data <- observed_data
-  model$augmented_data <- augmented_data
+  model$true_dates <- true_dates
   model$error_indicators <- error_indicators
   
   model
