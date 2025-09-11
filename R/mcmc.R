@@ -50,7 +50,7 @@ mcmc_run <- function(observed_data,
       monty::monty_runner_serial()
   
   samples <- monty::monty_sample(model, sampler, control$n_steps,
-                                 initial = rep(0, length(parameters)),
+                                 initial = initial,
                                  n_chains = control$n_chains, runner = runner,
                                  burnin = control$burnin, 
                                  thinning_factor = control$thinning_factor)
