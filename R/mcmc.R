@@ -20,9 +20,11 @@ mcmc_run <- function(observed_data,
   
   ## Delay parameters will be numbered according to their row number in
   ## the delays data frame
-  delay_ids <- seq_len(nrow(delays))
+  n_delays <- nrow(delays)
+  delay_ids <- seq_len(n_delays)
   parameters <- c("prob_error", paste0("mean_delay", delay_ids),
                   paste0("cv_delay", delay_ids))
+  initial <- c(0.1, rep(7, n_delays), rep(0.2, n_delays))
   
   model <- monty::monty_model(list(
     parameters = parameters,
