@@ -50,7 +50,7 @@ mcmc_run <- function(observed_data,
       monty::monty_runner_serial()
   
   samples <- monty::monty_sample(model, sampler, control$n_steps,
-                                 initial = rep(0, length(parameters)),
+                                 initial = initial,
                                  n_chains = control$n_chains, runner = runner,
                                  burnin = control$burnin, 
                                  thinning_factor = control$thinning_factor)
@@ -60,6 +60,8 @@ mcmc_run <- function(observed_data,
 
 mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
  
+  state_chain <- update_pars_delay(state_chain, control, model, rng)
+  
   state_chain <- update_prob_error(state_chain, model, rng)
   
   state_chain 
@@ -101,7 +103,9 @@ mcmc_control <- function(n_steps = 1000,
                          parallel = FALSE,
                          n_workers = 1,
                          lower_quantile = 0.01,
-                         upper_quantile = 0.99) {
+                         upper_quantile = 0.99,
+                         mean_sdlog = 1,
+                         cv_sdlog = 1) {
   
   list(n_steps = n_steps,
        burnin = burnin,
@@ -110,7 +114,9 @@ mcmc_control <- function(n_steps = 1000,
        parallel = parallel,
        n_workers = n_workers,
        lower_quantile = lower_quantile,
-       upper_quantile = upper_quantile)
+       upper_quantile = upper_quantile, 
+       mean_sdlog = mean_sdlog,
+       cv_sdlog = cv_sdlog)
 }
 
 ##' Create hyperparameters
