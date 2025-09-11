@@ -64,7 +64,7 @@ mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
 }
 
 mcmc_initialise <- function(state_chain, control, model, rng) {
-  initialise_augmented_data(model, control)
+  initialise_augmented_data(model, control, rng)
   
   return(NULL)
 }

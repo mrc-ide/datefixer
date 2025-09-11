@@ -109,8 +109,8 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 #' # id group      onset hospitalisation  discharge
 #' #  1     3 2025-05-01      2025-05-07 2025-05-20
 #'
-initialise_row <- function(individual_data, delay_map, delay_boundaries) {
-
+initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
+  browser()
   current_group <- individual_data$group
 
   group_delay_map <- delay_map[sapply(delay_map$group,
@@ -201,7 +201,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
     iter <- iter + 1
   }
 
-  individual_data[, group_dates] <- individual_data[, group_dates] + 0.5
+  individual_data[, group_dates] <- individual_data[, group_dates] + 
+    monty::monty_random_n_real(length(group_dates), rng)
   
   individual_data
 }
@@ -270,7 +271,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
 #' aug_dat$augmented_data
 #' aug_dat$error_indicators
 #'
-initialise_augmented_data <- function(model, control) {
+initialise_augmented_data <- function(model, control, rng) {
   
   observed_dates <- model$observed_dates
   groups <- model$groups
@@ -291,7 +292,7 @@ initialise_augmented_data <- function(model, control) {
   true_dates$id <- seq_len(nrow(true_dates))
   true_dates <- true_dates %>%
     group_by(id) %>%
-    group_modify(~ initialise_row(.x, delay_map, delay_boundaries))
+    group_modify(~ initialise_row(.x, delay_map, delay_boundaries, rng))
 
   # Keep as tibble or covert to data frame?
   true_dates <- as.data.frame(true_dates)
