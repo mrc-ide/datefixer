@@ -12,7 +12,10 @@ mcmc_hyperparameters(
 )
 }
 \arguments{
-\item{prob_error_shape1}{The second shape parameter of the beta prior
+\item{prob_error_shape1}{The first shape parameter of the beta prior
+distribution for the probability of error}
+
+\item{prob_error_shape2}{The second shape parameter of the beta prior
 distribution for the probability of error}
 
 \item{mean_delay_scale}{The scale parameter (mean) of the exponential prior

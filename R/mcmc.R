@@ -120,7 +120,7 @@ mcmc_control <- function(n_steps = 1000,
 ##' @param prob_error_shape1 The first shape parameter of the beta prior
 ##'   distribution for the probability of error
 ##'
-##' @param prob_error_shape1 The second shape parameter of the beta prior
+##' @param prob_error_shape2 The second shape parameter of the beta prior
 ##'   distribution for the probability of error
 ##'
 ##' @param mean_delay_scale The scale parameter (mean) of the exponential prior
