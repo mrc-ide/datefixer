@@ -89,21 +89,23 @@ mcmc_initialise <- function(state_chain, control, model, rng) {
 ##'
 ##' @title Create control parameters
 ##'
-##' @param n_steps
+##' @param n_steps The number of steps to run in each MCMC chain
 ##' 
-##' @param burnin
+##' @param burnin The number of steps at the beginning of each chain to discard
+##'   as burnin
 ##'
-##' @param thinning_factor
+##' @param thinning_factor A thinning factor applied to the chains. If given,
+##'   every`thinning_factor`'th step is retained 
 ##'
-##' @param n_chains
+##' @param n_chains The number of chains to run
 ##' 
-##' @param parallel
+##' @param parallel Logical, indicating whether or not to run chains in parallel
 ##'
-##' @param n_workers
+##' @param n_workers Number of workers to use for parallelisation
 ##'
-##' @param lower_quantile
+##' @param lower_quantile Lower quantile used for initialisation of true dates
 ##' 
-##' @param upper_quantile
+##' @param upper_quantile Upper quantile used for initialisation of true dates
 ##'
 ##' @return List of control parameters
 ##'
