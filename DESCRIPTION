@@ -16,5 +16,7 @@ Imports:
     dplyr,
     generics,
     igraph,
+    monty (>= 0.4.0),
     purrr,
     stats
+Remotes: mrc-ide/monty
