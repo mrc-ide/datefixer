@@ -6,3 +6,8 @@ date_to_int <- function(date, origin = "1970-01-01") {
 int_to_date <- function(int, origin = "1970-01-01") {
   int + as.Date(origin)
 }
+
+
+data_frame_to_array <- function(df) {
+  array(df, dim(df))
+}

@@ -26,9 +26,21 @@ mcmc_run <- function(observed_data,
                   paste0("cv_delay", delay_ids))
   initial <- c(0.1, rep(7, n_delays), rep(0.2, n_delays))
   
+  observer <- monty::monty_observer(
+    function(model = NULL) {
+      if (is.null(model)) {
+        NULL
+      } else {
+        list(errors = data_frame_to_array(model$error_indicators),
+             true_dates = data_frame_to_array(model$true_dates))
+      }
+    }
+  )
+  
   model <- monty::monty_model(list(
     parameters = parameters,
-    density = function(pars) 0))
+    density = function(pars) 0,
+    observer = observer))
   
   model$groups <- observed_data$group
   model$observed_dates <- observed_dates_to_int(observed_data)
@@ -62,6 +74,8 @@ mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
  
   state_chain <- update_prob_error(state_chain, model, rng)
   
+  state_chain$observation <- model$observer$observe(model)
+    
   state_chain 
 }
 
