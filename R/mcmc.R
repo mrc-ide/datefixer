@@ -72,6 +72,8 @@ mcmc_run <- function(observed_data,
 
 mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
  
+  state_chain <- update_pars_delay(state_chain, control, model, rng)
+  
   state_chain <- update_prob_error(state_chain, model, rng)
   
   state_chain$observation <- model$observer$observe(model)
@@ -106,6 +108,11 @@ mcmc_initialise <- function(state_chain, control, model, rng) {
 ##' @param lower_quantile Lower quantile used for initialisation of true dates
 ##' 
 ##' @param upper_quantile Upper quantile used for initialisation of true dates
+##' 
+##' @param mean_sdlog The sdlog proposal parameter for the delay means
+##' 
+##' @param cv_sdlog The sdlog proposal parameter for the delay coefficients of
+##'   variation
 ##'
 ##' @return List of control parameters
 ##'
@@ -117,7 +124,9 @@ mcmc_control <- function(n_steps = 1000,
                          parallel = FALSE,
                          n_workers = 1,
                          lower_quantile = 0.01,
-                         upper_quantile = 0.99) {
+                         upper_quantile = 0.99,
+                         mean_sdlog = 1,
+                         cv_sdlog = 1) {
   
   list(n_steps = n_steps,
        burnin = burnin,
@@ -126,7 +135,9 @@ mcmc_control <- function(n_steps = 1000,
        parallel = parallel,
        n_workers = n_workers,
        lower_quantile = lower_quantile,
-       upper_quantile = upper_quantile)
+       upper_quantile = upper_quantile, 
+       mean_sdlog = mean_sdlog,
+       cv_sdlog = cv_sdlog)
 }
 
 ##' Create hyperparameters
