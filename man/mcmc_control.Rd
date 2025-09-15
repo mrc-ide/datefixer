@@ -12,7 +12,9 @@ mcmc_control(
   parallel = FALSE,
   n_workers = 1,
   lower_quantile = 0.01,
-  upper_quantile = 0.99
+  upper_quantile = 0.99,
+  mean_sdlog = 1,
+  cv_sdlog = 1
 )
 }
 \arguments{
