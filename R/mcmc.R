@@ -108,6 +108,11 @@ mcmc_initialise <- function(state_chain, control, model, rng) {
 ##' @param lower_quantile Lower quantile used for initialisation of true dates
 ##' 
 ##' @param upper_quantile Upper quantile used for initialisation of true dates
+##' 
+##' @param mean_sdlog The sdlog proposal parameter for the delay means
+##' 
+##' @param cv_delog The sdlog proposal parameter for the delay coefficients of
+##'   variation
 ##'
 ##' @return List of control parameters
 ##'

@@ -35,6 +35,11 @@ every\code{thinning_factor}'th step is retained}
 \item{lower_quantile}{Lower quantile used for initialisation of true dates}
 
 \item{upper_quantile}{Upper quantile used for initialisation of true dates}
+
+\item{mean_sdlog}{The sdlog proposal parameter for the delay means}
+
+\item{cv_delog}{The sdlog proposal parameter for the delay coefficients of
+variation}
 }
 \value{
 List of control parameters
