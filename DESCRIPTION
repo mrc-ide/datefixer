@@ -16,5 +16,9 @@ Imports:
     dplyr,
     generics,
     igraph,
+    monty (>= 0.4.0),
     purrr,
-    stats
+    stats,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Remotes: mrc-ide/monty
