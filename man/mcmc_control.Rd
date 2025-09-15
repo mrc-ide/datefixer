@@ -16,21 +16,23 @@ mcmc_control(
 )
 }
 \arguments{
-\item{n_steps}{}
+\item{n_steps}{The number of steps to run in each MCMC chain}
 
-\item{burnin}{}
+\item{burnin}{The number of steps at the beginning of each chain to discard
+as burnin}
 
-\item{thinning_factor}{}
+\item{thinning_factor}{A thinning factor applied to the chains. If given,
+every\code{thinning_factor}'th step is retained}
 
-\item{n_chains}{}
+\item{n_chains}{The number of chains to run}
 
-\item{parallel}{}
+\item{parallel}{Logical, indicating whether or not to run chains in parallel}
 
-\item{n_workers}{}
+\item{n_workers}{Number of workers to use for parallelisation}
 
-\item{lower_quantile}{}
+\item{lower_quantile}{Lower quantile used for initialisation of true dates}
 
-\item{upper_quantile}{}
+\item{upper_quantile}{Upper quantile used for initialisation of true dates}
 }
 \value{
 List of control parameters

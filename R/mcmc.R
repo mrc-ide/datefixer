@@ -26,9 +26,21 @@ mcmc_run <- function(observed_data,
                   paste0("cv_delay", delay_ids))
   initial <- c(0.1, rep(7, n_delays), rep(0.2, n_delays))
   
+  observer <- monty::monty_observer(
+    function(model = NULL) {
+      if (is.null(model)) {
+        NULL
+      } else {
+        list(errors = data_frame_to_array(model$error_indicators),
+             true_dates = data_frame_to_array(model$true_dates))
+      }
+    }
+  )
+  
   model <- monty::monty_model(list(
     parameters = parameters,
-    density = function(pars) 0))
+    density = function(pars) 0,
+    observer = observer))
   
   model$groups <- observed_data$group
   model$observed_dates <- observed_dates_to_int(observed_data)
@@ -64,6 +76,8 @@ mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
   
   state_chain <- update_prob_error(state_chain, model, rng)
   
+  state_chain$observation <- model$observer$observe(model)
+    
   state_chain 
 }
 
@@ -77,21 +91,23 @@ mcmc_initialise <- function(state_chain, control, model, rng) {
 ##'
 ##' @title Create control parameters
 ##'
-##' @param n_steps
+##' @param n_steps The number of steps to run in each MCMC chain
 ##' 
-##' @param burnin
+##' @param burnin The number of steps at the beginning of each chain to discard
+##'   as burnin
 ##'
-##' @param thinning_factor
+##' @param thinning_factor A thinning factor applied to the chains. If given,
+##'   every`thinning_factor`'th step is retained 
 ##'
-##' @param n_chains
+##' @param n_chains The number of chains to run
 ##' 
-##' @param parallel
+##' @param parallel Logical, indicating whether or not to run chains in parallel
 ##'
-##' @param n_workers
+##' @param n_workers Number of workers to use for parallelisation
 ##'
-##' @param lower_quantile
+##' @param lower_quantile Lower quantile used for initialisation of true dates
 ##' 
-##' @param upper_quantile
+##' @param upper_quantile Upper quantile used for initialisation of true dates
 ##'
 ##' @return List of control parameters
 ##'
@@ -126,7 +142,7 @@ mcmc_control <- function(n_steps = 1000,
 ##' @param prob_error_shape1 The first shape parameter of the beta prior
 ##'   distribution for the probability of error
 ##'
-##' @param prob_error_shape1 The second shape parameter of the beta prior
+##' @param prob_error_shape2 The second shape parameter of the beta prior
 ##'   distribution for the probability of error
 ##'
 ##' @param mean_delay_scale The scale parameter (mean) of the exponential prior

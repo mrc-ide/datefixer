@@ -90,14 +90,23 @@ lproposal_delays <- function(from_pars_delay, to_pars_delay, control) {
 
 update_prob_error <- function(state_chain, model, rng) {
   i <- model$parameters == "prob_error"
-  n_errors <- sum(model$error_indicators, na.rm = TRUE)
-  n_non_errors <- sum(!model$error_indicators, na.rm = TRUE)
   
-  shape1 <- model$hyperparameters$prob_error_shape1  
-  shape2 <- model$hyperparameters$prob_error_shape2
+  beta_pars <- 
+    update_prob_error_parameters(model$error_indicators, model$hyperparameters)
   
   state_chain$pars[i] <- 
-    monty::monty_random_beta(n_errors + shape1, n_non_errors + shape2, rng)
-  
+    monty::monty_random_beta(beta_pars$shape1, beta_pars$shape2, rng)
+    
   state_chain
+}
+
+update_prob_error_parameters <- function(error_indicators, hyperparameters) {
+  n_errors <- sum(error_indicators, na.rm = TRUE)
+  n_non_errors <- sum(!error_indicators, na.rm = TRUE)
+  
+  shape1 <- n_errors + hyperparameters$prob_error_shape1  
+  shape2 <- n_non_errors + hyperparameters$prob_error_shape2
+  
+  list(shape1 = shape1,
+       shape2 = shape2)
 }
