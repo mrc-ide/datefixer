@@ -1,21 +1,5 @@
 # Initialise data for the MCMC
-
-#' Function to work out number of steps between events
-#' @param delay_map Data frame defining all delay rules
-#' @return Data frame of the steps between each event date
 #' @importFrom igraph graph_from_data_frame distances
-#' @export
-#' @examples
-#' delay_map <- data.frame(
-#'   from = c("onset", "onset", "onset",
-#'            "hospitalisation", "onset", "hospitalisation"),
-#'   to = c("report", "death", "hospitalisation",
-#'          "discharge", "hospitalisation", "death"),
-#'   group = I(list(1:4, 2, 3, 3, 4, 4))
-#' )
-#'
-#' calculate_transitive_steps(delay_map)
-#'
 calculate_transitive_steps <- function(delay_map) {
 
   all_events <- unique(c(delay_map$from, delay_map$to))
@@ -34,26 +18,9 @@ calculate_transitive_steps <- function(delay_map) {
 }
 
 
-#' Calculate the lower and upper delay boundaries based on quantiles
-#' @param delay_params The data frame of delay distribution parameters
-#' @param quantile_range A vector of two probabilities (e.g. c(0.01, 0.99))
-#' @return A data frame with `from`, `to`, `group`, `min_delay`, and `max_delay`
+# Calculate the lower and upper delay boundaries based on quantiles
 #' @importFrom dplyr %>% mutate select
 #' @importFrom stats qgamma
-#' @export
-#' @examples
-#' delay_params <- data.frame(
-#'   group = c(1:4, 2, 3, 3, 4, 4),
-#'   from = c("onset", "onset", "onset", "onset", "onset", "onset",
-#'            "hospitalisation", "onset", "hospitalisation"),
-#'   to = c("report", "report", "report", "report", "death", "hospitalisation",
-#'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
-#' )
-#' quantile_range <- c(0.01, 0.99)
-#' calculate_delay_boundaries(delay_params, quantile_range)
-#'
 calculate_delay_boundaries <- function(delay_params, quantile_range) {
   delay_params %>%
     mutate(
@@ -67,55 +34,20 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 }
 
 
-#' Initialise the augmented data for an individual (row)
-#' @param individual_data A single row data frame for an individual
-#' @param delay_map Data frame defining all delay rules
-#' @param delay_boundaries Data frame with calculated min/max delays
-#' @return A single row of the data frame with dates corrected and imputed
+# Initialise the augmented data for an individual (row)
 #' @importFrom igraph graph_from_data_frame all_shortest_paths
 #' @importFrom dplyr inner_join
 #' @importFrom stats median
 #' @importFrom utils head tail
-#' @export
-#' @examples
-#' # Inputs
-#' individual_data <- data.frame(
-#'   id = 1, group = 3,
-#'   onset = as.Date("2025-05-01"),
-#'   hospitalisation = as.Date("2025-05-02"),
-#'   discharge = as.Date(NA)
-#' )
-#'
-#' delay_map <- data.frame(
-#'   from = c("onset", "hospitalisation"),
-#'   to = c("hospitalisation", "discharge"),
-#'   group = I(list(3, 3))
-#' )
-#'
-#' delay_boundaries <- data.frame(
-#'   group = 3,
-#'   from = c("onset", "hospitalisation"),
-#'   to = c("hospitalisation", "discharge"),
-#'   # Set a min_delay of 3 days for onset -> hospitalisation
-#'   min_delay = c(3, 7),
-#'   max_delay = c(10, 20)
-#' )
-#'
-#' result <- initialise_row(individual_data, delay_map, delay_boundaries)
-#'
-#' # hospitalisation identified as incompatible, incompatible date and missing
-#' # date both imputed
-#' result
-#' # id group      onset hospitalisation  discharge
-#' #  1     3 2025-05-01      2025-05-07 2025-05-20
-#'
-initialise_row <- function(individual_data, delay_map, delay_boundaries) {
-
+initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
+  
   current_group <- individual_data$group
 
   group_delay_map <- delay_map[sapply(delay_map$group,
                                       function(g) current_group %in% g), ]
-  group_delay_boundaries <- subset(delay_boundaries, group == current_group)
+  group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
+                                                    function(g) current_group %in% g), ]
+  group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
 
   # Find all incompatible delays (direct and transitive)
   group_transitive_steps <- calculate_transitive_steps(group_delay_map)
@@ -182,7 +114,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
   # Impute missing dates - find nicer way to do this?
   max_iter <- 10
   iter <- 0
-  while(any(is.na(individual_data)) && iter < max_iter) {
+  while(any(is.na(individual_data[, group_dates])) && iter < max_iter) {
     for (j in seq_len(nrow(group_delay_boundaries))) {
       from_event <- group_delay_boundaries$from[j]
       to_event <- group_delay_boundaries$to[j]
@@ -199,101 +131,48 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries) {
     iter <- iter + 1
   }
 
-  return(individual_data)
+  individual_data[, group_dates] <- individual_data[, group_dates] + 
+    monty::monty_random_n_real(length(group_dates), rng)
+  
+  individual_data
 }
 
-#' Initialises augmented data based on observed data
-#'
-#' @param observed_data A data frame of observed dates
-#' @param delay_map A data frame defining the delay rules
-#' @param delay_params A data frame with delay distribution parameters
-#' @param init_settings A list containing `quantile_range` (e.g. c(0.01, 0.99))
-#'
-#' @return A list with two data frames: `augmented_data` and `error_indicators`
-#' @export
+# Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-#' @examples
-#' # Define the delay_map data frame
-#' delay_map <- data.frame(
-#'   from = c("onset", "onset", "onset",
-#'            "hospitalisation", "onset", "hospitalisation"),
-#'   to = c("report", "death", "hospitalisation",
-#'          "discharge", "hospitalisation", "death"),
-#'   group = I(list(1:4, 2, 3, 3, 4, 4))
-#' )
-#'
-#' # Define the delay parameters data frame
-#' delay_params <- data.frame(
-#'   group = c(1:4, 2, 3, 3, 4, 4),
-#'   from = c("onset", "onset", "onset", "onset", "onset", "onset",
-#'            "hospitalisation", "onset", "hospitalisation"),
-#'   to = c("report", "report", "report", "report", "death", "hospitalisation",
-#'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
-#' )
-#'
-#' # Define other parameters
-#' n_per_group <- rep(10, max(delay_params$group))
-#' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-#' range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
-#'
-#' # Simulate data
-#' set.seed(1)
-#' sim_result <- simulate_data(
-#'   n_per_group = n_per_group,
-#'   delay_map = delay_map,
-#'   delay_params = delay_params,
-#'   error_params = error_params,
-#'   range_dates = range_dates,
-#'   simul_error = TRUE
-#' )
-#'
-#' obs_dat <- sim_result$observed_data
-#'
-#' mcmc_init_settings <- list(quantile_range = c(0.01, 0.99))
-#'
-#' aug_dat <- initialise_augmented_data(
-#'   observed_data = obs_dat,
-#'   delay_map = delay_map,
-#'   delay_params = delay_params,
-#'   init_settings = mcmc_init_settings
-#' )
-#'
-#' # Compare data to original
-#' obs_dat
-#' aug_dat$augmented_data
-#' aug_dat$error_indicators
-#'
-initialise_augmented_data <- function(observed_data, delay_map,
-                                      delay_params, init_settings) {
-
+initialise_augmented_data <- function(model, control, rng) {
+  
+  observed_dates <- model$observed_dates
+  groups <- model$groups
+  delay_map <- model$delays
+  delay_params <- model$delays
+  delay_params$delay_mean <- 7
+  delay_params$delay_cv <- 0.25
+  init_settings <- list(quantile_range = c(control$lower_quantile,
+                                           control$upper_quantile))
+  
+  
   delay_boundaries <- calculate_delay_boundaries(delay_params,
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
-  augmented_data <- observed_data %>%
+  true_dates <- observed_dates
+  true_dates$group <- groups
+  true_dates$id <- seq_len(nrow(true_dates))
+  true_dates <- true_dates %>%
     group_by(id) %>%
-    group_modify(~ initialise_row(.x, delay_map, delay_boundaries))
+    group_modify(~ initialise_row(.x, delay_map, delay_boundaries, rng))
 
   # Keep as tibble or covert to data frame?
-  augmented_data <- as.data.frame(augmented_data)
+  true_dates <- as.data.frame(true_dates)
+  date_cols <- names(observed_dates)
+  true_dates <- true_dates[, date_cols]
 
   # Create the error indicators
-  error_indicators <- observed_data
-  date_cols <- setdiff(names(observed_data), c("id", "group"))
-
-  for (col in date_cols) {
-    error_indicators[[col]] <- case_when(
-      is.na(observed_data[[col]]) ~ NA,
-      observed_data[[col]] != augmented_data[[col]] ~ TRUE,
-      TRUE ~ FALSE
-    )
-  }
-
-  return(list(
-    augmented_data = augmented_data,
-    error_indicators = error_indicators
-  ))
+  error_indicators <- as.data.frame(observed_dates != floor(true_dates))
+  
+  model$true_dates <- true_dates
+  model$error_indicators <- error_indicators
+  
+  model
 }
