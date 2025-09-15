@@ -10,9 +10,12 @@ calculate_transitive_steps <- function(delay_map) {
 
   distances_df <- as.data.frame(as.table(distances_matrix))
   names(distances_df) <- c("from", "to", "steps")
-  distances_df$steps[is.infinite(distances_df$steps)] <- NA
   distances_df$from <- as.character(distances_df$from)
   distances_df$to <- as.character(distances_df$to)
+  
+  # remove 0 steps and dates with no connection
+  distances_df <- subset(distances_df, steps != 0 & !is.infinite(steps))
+  row.names(distances_df) <- NULL
 
   return(distances_df)
 }
@@ -50,9 +53,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
   group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
 
   # Find all incompatible delays (direct and transitive)
-  group_transitive_steps <- calculate_transitive_steps(group_delay_map)
+  valid_paths <- calculate_transitive_steps(group_delay_map)
   incompatible_events <- list()
-  valid_paths <- subset(group_transitive_steps, !is.na(steps) & !steps %in% 0)
 
   group_graph <- graph_from_data_frame(
     group_delay_map[, c("from", "to")], directed = TRUE)
