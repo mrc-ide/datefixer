@@ -111,7 +111,7 @@ mcmc_initialise <- function(state_chain, control, model, rng) {
 ##' 
 ##' @param mean_sdlog The sdlog proposal parameter for the delay means
 ##' 
-##' @param cv_delog The sdlog proposal parameter for the delay coefficients of
+##' @param cv_sdlog The sdlog proposal parameter for the delay coefficients of
 ##'   variation
 ##'
 ##' @return List of control parameters

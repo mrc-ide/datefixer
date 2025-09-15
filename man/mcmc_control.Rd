@@ -38,7 +38,7 @@ every\code{thinning_factor}'th step is retained}
 
 \item{mean_sdlog}{The sdlog proposal parameter for the delay means}
 
-\item{cv_delog}{The sdlog proposal parameter for the delay coefficients of
+\item{cv_sdlog}{The sdlog proposal parameter for the delay coefficients of
 variation}
 }
 \value{
