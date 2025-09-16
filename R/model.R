@@ -52,10 +52,10 @@ datefixer_model <- function(data, delay_map, hyperparameters) {
 ##' @return List of hyperparameters
 ##'
 ##' @export
-mcmc_hyperparameters <- function(prob_error_shape1 = 1,
-                                 prob_error_shape2 = 1,
-                                 mean_delay_scale = 10,
-                                 cv_delay_scale = 10) {
+datefixer_hyperparameters <- function(prob_error_shape1 = 1,
+                                      prob_error_shape2 = 1,
+                                      mean_delay_scale = 10,
+                                      cv_delay_scale = 10) {
   list(prob_error_shape1 = prob_error_shape1,
        prob_error_shape2 = prob_error_shape2,
        mean_delay_scale = mean_delay_scale,
