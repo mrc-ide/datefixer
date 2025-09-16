@@ -129,34 +129,6 @@ mcmc_control <- function(n_steps = 1000,
        upper_quantile = upper_quantile)
 }
 
-##' Create hyperparameters
-##'
-##' @title Create hyperparameters
-##'
-##' @param prob_error_shape1 The first shape parameter of the beta prior
-##'   distribution for the probability of error
-##'
-##' @param prob_error_shape2 The second shape parameter of the beta prior
-##'   distribution for the probability of error
-##'
-##' @param mean_delay_scale The scale parameter (mean) of the exponential prior
-##'   distribution for the means of the delays
-##'
-##' @param cv_delay_scale The scale parameter (mean) of the exponential prior
-##'   distribution for the coefficients of variations of the delays
-##'
-##' @return List of hyperparameters
-##'
-##' @export
-mcmc_hyperparameters <- function(prob_error_shape1 = 1,
-                                 prob_error_shape2 = 1,
-                                 mean_delay_scale = 10,
-                                 cv_delay_scale = 10) {
-  list(prob_error_shape1 = prob_error_shape1,
-       prob_error_shape2 = prob_error_shape2,
-       mean_delay_scale = mean_delay_scale,
-       cv_delay_scale = cv_delay_scale)
-}
 
 observed_dates_to_int <- function(data) {
   dates <- setdiff(names(data), c("id", "group"))
