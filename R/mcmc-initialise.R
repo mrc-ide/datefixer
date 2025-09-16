@@ -105,7 +105,8 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     } else {
       # remove the most outlying
       date_values <- unlist(individual_data[1, candidates_for_removal])
-      median_val <- median(date_values, na.rm = TRUE)
+      row_dates <- unlist(individual_data[1, group_dates])
+      median_val <- median(row_dates, na.rm = TRUE)
       outlier_idx <- which.max(abs(date_values - median_val))
       candidates_for_removal[outlier_idx]
     }
