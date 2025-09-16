@@ -8,6 +8,9 @@
 ##' 
 ##' @param hyperparameters List of hyperparameters
 ##'
+##' @return A datefixer model
+##'
+##' @export
 datefixer_model <- function(data, delay_map, hyperparameters) {
   validate_data_and_delays(data, delays)
   
