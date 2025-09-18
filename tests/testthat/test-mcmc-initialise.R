@@ -216,73 +216,109 @@ test_that("rows are initialised correctly in a complex example", {
   )
   
   res_5 <- initialise_row(individual_data_5, delay_map, delay_boundaries, rng)
+  exp_imputed <- c("onset", "report", "death")
+  expect_true(all(!is.na(res_5[, exp_imputed])))
+  
+  # 6. weird issue
+  # onset to report too long
+  # onset to death too long
+  # hospitalisation missing...
+  # onset now updated but hospitalisation date not being imputed
+  individual_data_6 <- data.frame(
+    id = 22, group = 4,
+    onset = as.Date("2025-03-29"),
+    hospitalisation = as.Date(NA),
+    report = as.Date("2025-04-15"),
+    death = as.Date("2025-04-27"),
+    discharge = as.Date(NA)
+  )
+  
+  res_6 <- initialise_row(individual_data_6, delay_map, delay_boundaries, rng)
   
 }) 
+
+# TODO: Update input format - converted to integers before calling initialise
+# TODO: sort out issue above
   
-
-
 
 ## ---------------------------------------------------------------------------
 
 
 
-# # test initialise_augmented_data()
-# 
-# test_that("data is initialised correctly", {
-# 
-#   # simulate test dataset
-#   delay_map <- data.frame(
-#     from = c("onset", "onset", "onset", "hospitalisation", "onset",
-#              "hospitalisation"),
-#     to = c("report", "death", "hospitalisation", "discharge", "hospitalisation",
-#            "death"),
-#     group = I(list(1:4, 2, 3, 3, 4, 4))
-#   )
-# 
-#   delay_params <- data.frame(
-#     group = c(1:4, 2, 3, 3, 4, 4),
-#     from = c("onset", "onset", "onset", "onset", "onset", "onset",
-#            "hospitalisation", "onset", "hospitalisation"),
-#     to = c("report", "report", "report", "report", "death", "hospitalisation",
-#          "discharge", "hospitalisation", "death"),
-#     mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#     cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
-#   )
-# 
-# n_per_group <- rep(10, max(delay_params$group))
-# error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-# range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
-# 
-# set.seed(1)
-# sim_result <- simulate_data(
-#   n_per_group = n_per_group,
-#   delay_map = delay_map,
-#   delay_params = delay_params,
-#   error_params = error_params,
-#   range_dates = range_dates,
-#   simul_error = TRUE
-# )
-# 
-# obs_dat <- sim_result$observed_data
-# 
-# # set up for monty
-# control <- mcmc_control()
-# 
-# model <- monty::monty_model(list(
-#   parameters = parameters,
-#   density = function(pars) 0,
-#   observer = observer))
-# 
-# model$groups <- observed_data$group
-# model$observed_dates <- observed_dates_to_int(observed_data)
-# model$delays <- delays
-# model$hyperparameters <- mcmc_hyperparameters()
-# 
-# aug_dat <- initialise_augmented_data(model, control, rng)
-# 
-# # Compare data to original
-# obs_dat
-# aug_dat$augmented_data
-# aug_dat$error_indicators
-# 
-# })
+# test initialise_augmented_data()
+
+test_that("data is initialised correctly", {
+
+  # simulate test dataset
+  delay_map <- data.frame(
+    from = c("onset", "onset", "onset", "hospitalisation", "onset",
+             "hospitalisation"),
+    to = c("report", "death", "hospitalisation", "discharge", "hospitalisation",
+           "death"),
+    group = I(list(1:4, 2, 3, 3, 4, 4))
+  )
+
+  delay_params <- data.frame(
+    group = c(1:4, 2, 3, 3, 4, 4),
+    from = c("onset", "onset", "onset", "onset", "onset", "onset",
+           "hospitalisation", "onset", "hospitalisation"),
+    to = c("report", "report", "report", "report", "death", "hospitalisation",
+         "discharge", "hospitalisation", "death"),
+    mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+    cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+  )
+
+n_per_group <- rep(10, max(delay_params$group))
+error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
+range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
+
+set.seed(1)
+sim_result <- simulate_data(
+  n_per_group = n_per_group,
+  delay_map = delay_map,
+  delay_params = delay_params,
+  error_params = error_params,
+  range_dates = range_dates,
+  simul_error = TRUE
+)
+
+observed_data <- sim_result$observed_data
+
+# set up for monty
+control <- mcmc_control()
+
+n_delays <- nrow(delay_map)
+delay_ids <- seq_len(n_delays)
+parameters <- c("prob_error", paste0("mean_delay", delay_ids),
+                paste0("cv_delay", delay_ids))
+
+observer <- monty::monty_observer(
+  function(model = NULL) {
+    if (is.null(model)) {
+      NULL
+    } else {
+      list(errors = data_frame_to_array(model$error_indicators),
+           true_dates = data_frame_to_array(model$true_dates))
+    }
+  }
+)
+
+model <- monty::monty_model(list(
+  parameters = parameters,
+  density = function(pars) 0,
+  observer = observer))
+
+model$groups <- observed_data$group
+model$observed_dates <- observed_dates_to_int(observed_data)
+model$delays <- delay_map
+model$hyperparameters <- mcmc_hyperparameters()
+rng <- monty::monty_rng_create(1)
+
+aug_dat <- initialise_augmented_data(model, control, rng)
+
+# Compare data to original
+observed_data
+aug_dat$true_dates
+aug_dat$error_indicators
+
+})

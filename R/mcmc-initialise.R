@@ -60,13 +60,14 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
   incompatible_events <- list()
 
   for (i in 1:nrow(valid_paths)) {
+
     from_event <- valid_paths$from[i]
     to_event <- valid_paths$to[i]
     date1 <- individual_data[[from_event]]
     date2 <- individual_data[[to_event]]
 
     if (!is.na(date1) && !is.na(date2)) {
-      # For the current path, find the direct (1-step) delays that compose it
+      # For the current path, find the direct delays that compose it
       path_nodes_list <- all_shortest_paths(group_graph,
                                             from = from_event,
                                             to = to_event)$res
@@ -78,6 +79,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
         boundaries <- inner_join(direct_rules_on_path,
                                  group_delay_boundaries,
                                  by = c("from", "to"))
+
         if (nrow(boundaries) == nrow(direct_rules_on_path)) {
           min_allowed <- sum(boundaries$min_delay)
           max_allowed <- sum(boundaries$max_delay)
@@ -110,7 +112,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
       candidates_for_removal[outlier_idx]
     }
 
-    individual_data[[date_to_remove]] <- as.Date(NA)
+    individual_data[[date_to_remove]] <- NA
   }
 
   # Impute missing dates - find nicer way to do this?
@@ -122,16 +124,18 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
       group_dates, function(d) is.na(individual_data[[d]]))]
     
     imputed_this_pass <- FALSE
-    
+    print(missing_dates)
     for (missing_date in missing_dates) {
-      lower_bounds <- c(as.Date(-Inf))
-      upper_bounds <- c(as.Date(Inf))
+      #browser()
+      print(missing_date)
+      lower_bounds <- c(NULL)
+      upper_bounds <- c(NULL)
       
       rules_from <- subset(group_delay_boundaries, to == missing_date)
       for (k in seq_len(nrow(rules_from))) {
         from_event <- rules_from$from[k]
         from_date <- individual_data[[from_event]]
-        if (!is.na(from_date)) {
+        if (!is.null(from_date)) {
           lower_bounds <- c(lower_bounds, from_date + floor(rules_from$min_delay[k]))
           upper_bounds <- c(upper_bounds, from_date + floor(rules_from$max_delay[k]))
         }
@@ -141,29 +145,28 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
       for (k in seq_len(nrow(rules_to))) {
         to_event <- rules_to$to[k]
         to_date <- individual_data[[to_event]]
-        if (!is.na(to_date)) {
+        if (!is.null(to_date)) {
           lower_bounds <- c(lower_bounds, to_date - floor(rules_to$max_delay[k]))
           upper_bounds <- c(upper_bounds, to_date - floor(rules_to$min_delay[k]))
         }
       }
-      
-      final_lower <- max(lower_bounds)
-      final_upper <- min(upper_bounds)
+
+      final_lower <- max(lower_bounds, na.rm = TRUE)
+      final_upper <- min(upper_bounds, na.rm = TRUE)
       
       # Impute if a valid interval can be found
+      imputed_date <- NA
       if (final_lower <= final_upper) {
-        imputed_date <- NA
-        is_lower_finite <- !is.infinite(final_lower)
-        is_upper_finite <- !is.infinite(final_upper)
-        if (is_lower_finite && is_upper_finite) {
+        if (!is.null(final_lower) && !is.null(final_upper)) {
           imputed_date <- final_lower
-        } else if (is_lower_finite) {
+        } else if (!is.null(final_lower)) {
           imputed_date <- final_lower
-        } else if (is_upper_finite) {
+        } else if (!is.null(final_upper)) {
           imputed_date <- final_upper
         }
         
         if (!is.na(imputed_date)) {
+          #individual_data[[missing_date]] <- date_to_int(imputed_date)
           individual_data[[missing_date]] <- imputed_date
           imputed_this_pass <- TRUE
         }
@@ -178,7 +181,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 
   individual_data[, group_dates] <- individual_data[, group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
-  
+
   individual_data
 }
 
