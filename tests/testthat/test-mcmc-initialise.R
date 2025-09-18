@@ -1,7 +1,7 @@
 # test calculate_transitive_steps()
 
 test_that("calculate_transitive_steps works correctly", {
-
+  
   delay_map <- data.frame(
     from = c("onset", "onset", "onset", "hospitalisation", "onset",
              "hospitalisation"),
@@ -158,7 +158,7 @@ test_that("rows are initialised correctly in a complex example", {
   res_2 <- initialise_row(individual_data_2, delay_map, delay_boundaries, rng)
   expect_equal(res_2, individual_data_2, tolerance = 0.99)
   
-  # 3. 2 problematic delays: defined and transitive
+  # 3. two problematic delays: defined and transitive
   # hospitalisation -> death too short and
   # transitive delay between onset -> death = 2* 3.579235 = 7.16, so
   # onset -> death is also too short
@@ -173,31 +173,56 @@ test_that("rows are initialised correctly in a complex example", {
   
   res_3 <- initialise_row(individual_data_3, delay_map, delay_boundaries, rng)
   expect_true(res_3$death != individual_data_3$death)
+  
+  # 4. two unrelated problematic delays
+  # onset -> report too long (13 days)
+  # hospitalisation -> death too short (1 day)
+  individual_data_4 <- data.frame(
+    id = 34, group = 4,
+    onset = as.Date("2025-07-03"),
+    hospitalisation = as.Date("2025-07-10"),
+    report = as.Date("2025-07-16"),
+    death = as.Date("2025-07-11"),
+    discharge = as.Date(NA)
+  )
+  
+  res_4 <- initialise_row(individual_data_4, delay_map, delay_boundaries, rng)
+  
+  # identify most outlying for each problematic delay
+  group_dates <- names(individual_data_4[, -c(1:2)])
+  row_dates <- unlist(individual_data_4[1, group_dates])
+  median_val <- median(row_dates, na.rm = TRUE)
+  
+  candidates_for_removal1 <- c("onset", "report")
+  candidates_for_removal2 <- c("hospitalisation", "death")
+  
+  date_values1 <- unlist(individual_data_4[1, candidates_for_removal1])
+  date_values2 <- unlist(individual_data_4[1, candidates_for_removal2])
+  
+  outlier1 <- names(which.max(abs(date_values1 - median_val)))
+  outlier2 <- names(which.max(abs(date_values2 - median_val)))
+  
+  expect_true(res_4[[outlier1]] != individual_data_4[[outlier1]])
+  expect_true(res_4[[outlier2]] != individual_data_4[[outlier2]])
+  
+  # 5. can handle a scenario where there is only one non-missing date
+  individual_data_5 <- data.frame(
+    id = 34, group = 4,
+    onset = as.Date(NA),
+    hospitalisation = as.Date("2025-07-10"),
+    report = as.Date(NA),
+    death = as.Date(NA),
+    discharge = as.Date(NA)
+  )
+  
+  res_5 <- initialise_row(individual_data_5, delay_map, delay_boundaries, rng)
+  
 }) 
   
 
-## ---------------------------------------------------------------------------
 
-# ## This is currently not working as it should - leads to hospitalisation date
-# ## before onset date
-# 
-#   # 4. two unrelated problematic delays
-#   # onset -> report too long (13 days)
-#   # hospitalisation -> death too short (1 day)
-#   individual_data_4 <- data.frame(
-#     id = 34, group = 4,
-#     onset = as.Date("2025-07-03"),
-#     hospitalisation = as.Date("2025-07-10"),
-#     report = as.Date("2025-07-16"),
-#     death = as.Date("2025-07-11"),
-#     discharge = as.Date(NA)
-#   )
-# 
-# # at the moment its flagging the 4 dates as incompatible but picks onset as
-# # most outlying. Need to make a change so that other pathway considered during
-# # date imputation.
-#   res_4 <- initialise_row(individual_data_4, delay_map, delay_boundaries, rng)
-#   
+
+## ---------------------------------------------------------------------------
 
 
 
