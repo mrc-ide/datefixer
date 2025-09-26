@@ -140,12 +140,10 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(model, control, rng) {
+initialise_augmented_data <- function(observed_dates, groups, delays,
+                                      control, rng) {
   
-  observed_dates <- model$observed_dates
-  groups <- model$groups
-  delay_map <- model$delays
-  delay_params <- model$delays
+  delay_params <- delays
   delay_params$delay_mean <- 7
   delay_params$delay_cv <- 0.25
   init_settings <- list(quantile_range = c(control$lower_quantile,
@@ -171,8 +169,6 @@ initialise_augmented_data <- function(model, control, rng) {
   # Create the error indicators
   error_indicators <- as.data.frame(observed_dates != floor(true_dates))
   
-  model$true_dates <- true_dates
-  model$error_indicators <- error_indicators
-  
-  model
+  list(true_dates = true_dates,
+       error_indicators = error_indicators)
 }

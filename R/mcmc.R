@@ -2,60 +2,24 @@
 ##'
 ##' @title Run MCMC
 ##'
-##' @param observed_data Observed data
+##' @param model Model
 ##'
-##' @param delays Delays information
+##' @param sampler Sampler
 ##'
 ##' @param control List of control parameters
-##'
-##' @param hyperparameters List of hyperparameters
 ##'
 ##' @return Output
 ##'
 ##' @export
-mcmc_run <- function(observed_data,
-                     delays,
-                     control = mcmc_control(),
-                     hyperparameters = mcmc_hyperparameters()) {
+mcmc_run <- function(model,
+                     sampler,
+                     control = mcmc_control()) {
   
-  ## Delay parameters will be numbered according to their row number in
-  ## the delays data frame
-  n_delays <- nrow(delays)
-  delay_ids <- seq_len(n_delays)
-  parameters <- c("prob_error", paste0("mean_delay", delay_ids),
-                  paste0("cv_delay", delay_ids))
-  initial <- c(0.1, rep(7, n_delays), rep(0.2, n_delays))
-  
-  observer <- monty::monty_observer(
-    function(model = NULL) {
-      if (is.null(model)) {
-        NULL
-      } else {
-        list(errors = data_frame_to_array(model$error_indicators),
-             true_dates = data_frame_to_array(model$true_dates))
-      }
-    }
-  )
-  
-  model <- monty::monty_model(list(
-    parameters = parameters,
-    density = function(pars) 0,
-    observer = observer))
-  
-  model$groups <- observed_data$group
-  model$observed_dates <- observed_dates_to_int(observed_data)
-  model$delays <- delays
-  model$hyperparameters <- hyperparameters
-  
-  model <- list2env(model, parent = emptyenv())
-  class(model) <- "monty_model"
-  
-  sampler <- monty::monty_sampler(
-    "Sampler",
-    "sampler",
-    control,
-    mcmc_initialise,
-    mcmc_step)
+  parameters <- model$parameters
+  initial <- numeric(length(parameters))
+  initial[parameters == "prob_error"] <- 0.1
+  initial[grepl("mean_delay", parameters)] <- 7
+  initial[grepl("cv_delay", parameters)] <- 0.2
   
   runner <- 
     if (control$parallel) monty::monty_runner_callr(control$n_workers) else
@@ -68,21 +32,6 @@ mcmc_run <- function(observed_data,
                                  thinning_factor = control$thinning_factor)
   
   
-}
-
-mcmc_step <- function(state_chain, state_sampler, control, model, rng) {
- 
-  state_chain <- update_prob_error(state_chain, model, rng)
-  
-  state_chain$observation <- model$observer$observe(model)
-    
-  state_chain 
-}
-
-mcmc_initialise <- function(state_chain, control, model, rng) {
-  initialise_augmented_data(model, control, rng)
-  
-  return(NULL)
 }
 
 ##' Create control parameters
@@ -127,13 +76,4 @@ mcmc_control <- function(n_steps = 1000,
        n_workers = n_workers,
        lower_quantile = lower_quantile,
        upper_quantile = upper_quantile)
-}
-
-
-observed_dates_to_int <- function(data) {
-  dates <- setdiff(names(data), c("id", "group"))
-  
-  observed_dates <- data[, dates]
-  
-  as.data.frame(apply(observed_dates, c(1, 2), date_to_int))
 }
