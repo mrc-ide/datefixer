@@ -165,9 +165,12 @@ initialise_augmented_data <- function(observed_dates, groups, delays,
   true_dates <- as.data.frame(true_dates)
   date_cols <- names(observed_dates)
   true_dates <- true_dates[, date_cols]
+  
+  true_dates <- array(unlist(true_dates), dim(true_dates))
+  colnames(true_dates) <- date_cols
 
   # Create the error indicators
-  error_indicators <- as.data.frame(observed_dates != floor(true_dates))
+  error_indicators <- observed_dates != floor(true_dates)
   
   list(true_dates = true_dates,
        error_indicators = error_indicators)

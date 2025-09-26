@@ -109,7 +109,7 @@ datefixer_log_prior <- function(pars, hyperparameters) {
 }
 
 datefixer_log_likelihood <- function(pars, groups, delay_map) {
-  augmented_data <- attr(pars, "augmented_data")
+  augmented_data <- attr(pars, "data")
   
   ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
                                                augmented_data$error_indicators)
@@ -165,12 +165,12 @@ datefixer_log_likelihood_delays1 <- function(true_dates, groups, mean_delay,
 create_augmented_data_update <- function(observed_dates, groups, delay_map,
                                          control, density) {
   augmented_data_update <- function(pars, rng) {
-    augmented_data <- attr(pars, "augmented_data")
+    augmented_data <- attr(pars, "data")
     
     if (is.null(augmented_data)) {
       augmented_data <- initialise_augmented_data(observed_dates, groups,
                                                   delay_map, control, rng)
-      attr(pars, "augmented_data") <- augmented_data
+      attr(pars, "data") <- augmented_data
     }
     
     density <- density(pars)

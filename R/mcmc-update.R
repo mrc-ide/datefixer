@@ -1,7 +1,7 @@
 update_prob_error <- function(state_chain, model, rng) {
   i <- model$parameters == "prob_error"
   
-  augmented_data <- attr(state_chain$pars, "augmented_data")
+  augmented_data <- attr(state_chain$pars, "data")
   
   beta_pars <- 
     update_prob_error_parameters(augmented_data$error_indicators,
