@@ -12,6 +12,8 @@ datefixer_model(data, delay_map, hyperparameters, control)
 \item{delay_map}{Delays information}
 
 \item{hyperparameters}{List of hyperparameters}
+
+\item{control}{List of control parameters}
 }
 \value{
 A datefixer model

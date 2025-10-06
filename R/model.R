@@ -7,6 +7,8 @@
 ##' @param delay_map Delays information
 ##' 
 ##' @param hyperparameters List of hyperparameters
+##' 
+##' @param control List of control parameters
 ##'
 ##' @return A datefixer model
 ##'
@@ -93,6 +95,7 @@ create_datefixer_density <- function(parameters, groups, delay_map,
   density
 }
 
+#' @importFrom stats dbeta dexp
 datefixer_log_prior <- function(pars, hyperparameters) {
   lp_prob_error <- 
     dbeta(pars["prob_error"], hyperparameters$prob_error_shape1, 
@@ -149,6 +152,7 @@ datefixer_log_likelihood_delays <- function(true_dates, groups, mean_delays,
   
 }
 
+#' @importFrom stats dgamma
 datefixer_log_likelihood_delays1 <- function(true_dates, groups, mean_delay,
                                              cv_delay, delay_info) {
   
