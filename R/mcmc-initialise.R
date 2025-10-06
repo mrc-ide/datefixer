@@ -131,6 +131,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     iter <- iter + 1
   }
   
+  ### TEMPORARY FIX
   if (!is.na(individual_data[1, "hospitalisation"]) && 
       individual_data[1, "onset"] >= individual_data[1, "hospitalisation"]) {
     individual_data[["hospitalisation"]] <- individual_data[["onset"]] + 1
