@@ -12,7 +12,7 @@
 ##'
 ##' @export
 datefixer_model <- function(data, delay_map, hyperparameters, control) {
-  validate_data_and_delays(data, delays)
+  validate_data_and_delays(data, delay_map)
   
   groups <- data$group
   observed_dates <- observed_dates_to_int(data)
@@ -28,9 +28,10 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   density <- create_datefixer_density(parameters, groups, delay_map,
                                       hyperparameters)
   
-  augmented_data_update <- create_augmented_data_update(observed_dates, groups,
-                                                        delay_map, control,
-                                                        density)
+  augmented_data_update <- create_augmented_data_update(observed_dates, 
+                                                        parameters,
+                                                        groups, delay_map,
+                                                        control, density)
   
   model <- monty::monty_model(
     list(parameters = parameters,
@@ -162,13 +163,15 @@ datefixer_log_likelihood_delays1 <- function(true_dates, groups, mean_delay,
 }
 
 
-create_augmented_data_update <- function(observed_dates, groups, delay_map,
+create_augmented_data_update <- function(observed_dates, parameters,
+                                         groups, delay_map,
                                          control, density) {
   augmented_data_update <- function(pars, rng) {
     augmented_data <- attr(pars, "data")
     
     if (is.null(augmented_data)) {
-      augmented_data <- initialise_augmented_data(observed_dates, groups,
+      names(pars) <- parameters
+      augmented_data <- initialise_augmented_data(observed_dates, pars, groups,
                                                   delay_map, control, rng)
       attr(pars, "data") <- augmented_data
     }
