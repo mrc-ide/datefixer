@@ -17,23 +17,22 @@ test_that("update_prob_error_parameters works correctly", {
 })
 
 test_that("update_prob_error updates correctly", {
-  error_indicators <- data.frame(date1 = c(TRUE, FALSE, NA, FALSE, TRUE),
-                                 date2 = c(NA, NA, FALSE, FALSE, TRUE),
-                                 date3 = c(TRUE, TRUE, FALSE, FALSE, FALSE),
-                                 date4 = c(TRUE, FALSE, FALSE, NA, TRUE))
-  hyperparameters <- list(prob_error_shape1 = 2,
-                          prob_error_shape2 = 3)
   
-  n_delays <- 5
-  delay_ids <- seq_len(n_delays)
-  parameters <- c("prob_error", paste0("mean_delay", delay_ids),
-                  paste0("cv_delay", delay_ids))
-  state_chain <- list(pars = rep(0, length(parameters)))
-  model <- list(parameters = parameters,
-                error_indicators = error_indicators,
-                hyperparameters = hyperparameters)
+  model <- toy_model()
   
-  rng <- monty::monty_rng_create(1)
+  parameters <- model$parameters
+  pars <- numeric(length(parameters))
+  pars[parameters == "prob_error"] <- 0.1
+  pars[grepl("mean_delay", parameters)] <- 7
+  pars[grepl("cv_delay", parameters)] <- 0.2
+  
+  rng <- monty::monty_rng_create(1L)
+  
+  augmented_data <- model$augmented_data_update(pars, rng)
+  attr(pars, "data") <- augmented_data$data
+  state_chain <- list(pars = pars,
+                      density = augmented_data$density)
+  
   new_state_chain <- update_prob_error(state_chain, model, rng)
   
   ## check the correct parameter is updated
@@ -44,14 +43,14 @@ test_that("update_prob_error updates correctly", {
   
   ## edge cases
   ## No non-errors (FALSE), shape2 = 0 must result in 1
-  model$error_indicators[, ] <- TRUE
+  attr(state_chain$pars, "data")$error_indicators[, ] <- TRUE
   model$hyperparameters <- list(prob_error_shape1 = 2,
                                 prob_error_shape2 = 0)
   new_state_chain <- update_prob_error(state_chain, model, rng)
   expect_equal(new_state_chain$pars[i], 1)
   
   ## No errors (TRUE), shape1 = 0 must result in 0
-  model$error_indicators[, ] <- FALSE
+  attr(state_chain$pars, "data")$error_indicators[, ] <- FALSE
   model$hyperparameters <- list(prob_error_shape1 = 0,
                                 prob_error_shape2 = 3)
   new_state_chain <- update_prob_error(state_chain, model, rng)

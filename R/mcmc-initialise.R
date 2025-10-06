@@ -130,6 +130,12 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     }
     iter <- iter + 1
   }
+  
+  ### TEMPORARY FIX
+  if (!is.na(individual_data[1, "hospitalisation"]) && 
+      individual_data[1, "onset"] >= individual_data[1, "hospitalisation"]) {
+    individual_data[["hospitalisation"]] <- individual_data[["onset"]] + 1
+  }
 
   individual_data[, group_dates] <- individual_data[, group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
@@ -140,19 +146,16 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(model, control, rng) {
+initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
+                                      control, rng) {
   
-  observed_dates <- model$observed_dates
-  groups <- model$groups
-  delay_map <- model$delays
-  delay_params <- model$delays
-  delay_params$delay_mean <- 7
-  delay_params$delay_cv <- 0.25
+  delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
+  delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
   init_settings <- list(quantile_range = c(control$lower_quantile,
                                            control$upper_quantile))
   
   
-  delay_boundaries <- calculate_delay_boundaries(delay_params,
+  delay_boundaries <- calculate_delay_boundaries(delay_map,
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
@@ -167,12 +170,13 @@ initialise_augmented_data <- function(model, control, rng) {
   true_dates <- as.data.frame(true_dates)
   date_cols <- names(observed_dates)
   true_dates <- true_dates[, date_cols]
+  
+  true_dates <- array(unlist(true_dates), dim(true_dates))
+  colnames(true_dates) <- date_cols
 
   # Create the error indicators
-  error_indicators <- as.data.frame(observed_dates != floor(true_dates))
+  error_indicators <- observed_dates != floor(true_dates)
   
-  model$true_dates <- true_dates
-  model$error_indicators <- error_indicators
-  
-  model
+  list(true_dates = true_dates,
+       error_indicators = error_indicators)
 }

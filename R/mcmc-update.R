@@ -91,12 +91,17 @@ lproposal_delays <- function(from_pars_delay, to_pars_delay, control) {
 update_prob_error <- function(state_chain, model, rng) {
   i <- model$parameters == "prob_error"
   
+  augmented_data <- attr(state_chain$pars, "data")
+  
   beta_pars <- 
-    update_prob_error_parameters(model$error_indicators, model$hyperparameters)
+    update_prob_error_parameters(augmented_data$error_indicators,
+                                 model$hyperparameters)
   
   state_chain$pars[i] <- 
     monty::monty_random_beta(beta_pars$shape1, beta_pars$shape2, rng)
     
+  state_chain$density <- model$density(state_chain$pars)
+  
   state_chain
 }
 
