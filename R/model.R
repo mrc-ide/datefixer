@@ -7,6 +7,8 @@
 ##' @param delay_map Delays information
 ##' 
 ##' @param hyperparameters List of hyperparameters
+##' 
+##' @param control List of control parameters
 ##'
 ##' @return A datefixer model
 ##'
