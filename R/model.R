@@ -40,6 +40,8 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   model$hyperparameters <- hyperparameters
   
+  model$data_packer <- create_augmented_data_packer(observed_dates)
+  
   model
   
 }
@@ -109,7 +111,7 @@ datefixer_log_prior <- function(pars, hyperparameters) {
 }
 
 datefixer_log_likelihood <- function(pars, groups, delay_map) {
-  augmented_data <- attr(pars, "data")
+  augmented_data <- model$data_packer$unpack(attr(pars, "data"))
   
   ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
                                                augmented_data$error_indicators)
@@ -170,7 +172,7 @@ create_augmented_data_update <- function(observed_dates, groups, delay_map,
     if (is.null(augmented_data)) {
       augmented_data <- initialise_augmented_data(observed_dates, groups,
                                                   delay_map, control, rng)
-      attr(pars, "data") <- augmented_data
+      attr(pars, "data") <- model$data_packer$pack(augmented_data)
     }
     
     density <- density(pars)
@@ -186,4 +188,11 @@ observed_dates_to_int <- function(data) {
   observed_dates <- data[, dates]
   
   as.data.frame(apply(observed_dates, c(1, 2), date_to_int))
+}
+  
+
+create_augmented_data_packer <- function(observed_dates) {
+  
+  monty::monty_packer(array = list(true_dates = dim(observed_dates),
+                                   error_indicators = dim(observed_dates)))
 }
