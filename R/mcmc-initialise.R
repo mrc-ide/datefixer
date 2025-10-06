@@ -130,6 +130,11 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     }
     iter <- iter + 1
   }
+  
+  if (!is.na(individual_data[1, "hospitalisation"]) && 
+      individual_data[1, "onset"] >= individual_data[1, "hospitalisation"]) {
+    individual_data[["hospitalisation"]] <- individual_data[["onset"]] + 1
+  }
 
   individual_data[, group_dates] <- individual_data[, group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
