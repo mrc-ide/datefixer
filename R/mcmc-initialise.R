@@ -131,6 +131,7 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     iter <- iter + 1
   }
   
+  ### TEMPORARY FIX
   if (!is.na(individual_data[1, "hospitalisation"]) && 
       individual_data[1, "onset"] >= individual_data[1, "hospitalisation"]) {
     individual_data[["hospitalisation"]] <- individual_data[["onset"]] + 1
@@ -145,17 +146,16 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(observed_dates, groups, delays,
+initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
                                       control, rng) {
   
-  delay_params <- delays
-  delay_params$delay_mean <- 7
-  delay_params$delay_cv <- 0.25
+  delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
+  delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
   init_settings <- list(quantile_range = c(control$lower_quantile,
                                            control$upper_quantile))
   
   
-  delay_boundaries <- calculate_delay_boundaries(delay_params,
+  delay_boundaries <- calculate_delay_boundaries(delay_map,
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
