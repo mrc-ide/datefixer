@@ -14,7 +14,8 @@
 ##'
 ##' @export
 datefixer_model <- function(data, delay_map, hyperparameters, control) {
-  validate_data_and_delays(data, delay_map)
+  
+  delay_map <- validate_data_and_delays(data, delay_map)
   
   groups <- data$group
   observed_dates <- observed_dates_to_int(data)
@@ -27,23 +28,30 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   domain <- cbind(rep(0, 1 + 2 * n_delays), c(1, rep(Inf, 2 * n_delays)))
   
-  density <- create_datefixer_density(parameters, groups, delay_map,
-                                      hyperparameters)
+  density <- make_datefixer_density(parameters, groups, delay_map,
+                                    hyperparameters)
   
-  augmented_data_update <- create_augmented_data_update(observed_dates, 
-                                                        parameters,
-                                                        groups, delay_map,
-                                                        control, density)
+  data_packer <- make_augmented_data_packer(observed_dates)
   
-  model <- monty::monty_model(
+  augmented_data_update <- make_augmented_data_update(observed_dates, 
+                                                      parameters,
+                                                      groups, delay_map,
+                                                      control, density,
+                                                      data_packer)
+  
+  likelihood <- monty::monty_model(
     list(parameters = parameters,
          domain = domain,
          density = density,
          augmented_data_update = augmented_data_update))
   
+  prior <- make_prior(parameters, hyperparameters, domain)
+  
+  model <- likelihood + prior
+  
   model$hyperparameters <- hyperparameters
   
-  model$data_packer <- create_augmented_data_packer(observed_dates)
+  model$data_packer <- data_packer
   
   model
   
@@ -80,38 +88,52 @@ datefixer_hyperparameters <- function(prob_error_shape1 = 1,
 
 validate_data_and_delays <- function(data, delay_map) {
   ## Here we will validate the data and delays and check they are compatible
+  
+  dates <- setdiff(names(data), c("id", "group"))
+  
+  delay_map$from <- match(delay_map$from, dates)
+  delay_map$to <- match(delay_map$to, dates)
+  
+  delay_map
 }
 
-create_datefixer_density <- function(parameters, groups, delay_map,
-                                     hyperparameters) {
+make_datefixer_density <- function(parameters, groups, delay_map,
+                                   hyperparameters) {
   
   density <- function(pars) {
     names(pars) <- parameters
     
     log_likelihood <- datefixer_log_likelihood(pars, groups, delay_map)
-    log_prior <- datefixer_log_prior(pars, hyperparameters)
-    
-    log_likelihood + log_prior
   }
   
   density
 }
 
 #' @importFrom stats dbeta dexp
-datefixer_log_prior <- function(pars, hyperparameters) {
-  lp_prob_error <- 
-    dbeta(pars["prob_error"], hyperparameters$prob_error_shape1, 
-          hyperparameters$prob_error_shape2, log = TRUE)
-  
-  lp_mean_delays <-
-    dexp(pars[grepl("^mean_delay", names(pars))], 
-         1 / hyperparameters$mean_delay_scale, log = TRUE)
-  
-  lp_cv_delays <-
-    dexp(pars[grepl("^cv_delay", names(pars))], 
-         1 / hyperparameters$cv_delay_scale, log = TRUE)
-  
-  lp_prob_error + sum(lp_mean_delays) + sum(lp_cv_delays)
+make_prior <- function(parameters, hyperparameters, domain) {
+  monty::monty_model(
+    list(
+      parameters = parameters,
+      density = function (pars) {
+        names(pars) <- parameters
+        
+        lp_prob_error <- 
+          dbeta(pars[["prob_error"]], hyperparameters$prob_error_shape1, 
+                hyperparameters$prob_error_shape2, log = TRUE)
+        
+        lp_mean_delays <-
+          dexp(pars[grepl("^mean_delay", names(pars))], 
+               1 / hyperparameters$mean_delay_scale, log = TRUE)
+        
+        lp_cv_delays <-
+          dexp(pars[grepl("^cv_delay", names(pars))], 
+               1 / hyperparameters$cv_delay_scale, log = TRUE)
+        
+        lp_prob_error + sum(lp_mean_delays) + sum(lp_cv_delays)
+        
+      },
+      domain = domain
+    ))
 }
 
 datefixer_log_likelihood <- function(pars, groups, delay_map) {
@@ -169,20 +191,25 @@ datefixer_log_likelihood_delays1 <- function(true_dates, groups, mean_delay,
 }
 
 
-create_augmented_data_update <- function(observed_dates, parameters,
-                                         groups, delay_map,
-                                         control, density) {
+make_augmented_data_update <- function(observed_dates, parameters, groups,
+                                       delay_map, control, density_fn,
+                                       data_packer) {
   augmented_data_update <- function(pars, rng) {
     augmented_data <- attr(pars, "data")
     
     if (is.null(augmented_data)) {
+      ## augmented data does not exist, so we initialise it
       names(pars) <- parameters
       augmented_data <- initialise_augmented_data(observed_dates, pars, groups,
                                                   delay_map, control, rng)
-      attr(pars, "data") <- model$data_packer$pack(augmented_data)
+      augmented_data <- data_packer$pack(augmented_data)
+      attr(pars, "data") <- augmented_data
+      
+      density <- density_fn(pars)
+    } else {
+      ## here we will do the update bit
+      density <- density_fn(pars)
     }
-    
-    density <- density(pars)
     
     list(data = augmented_data, density = density)
   } 
@@ -192,14 +219,13 @@ create_augmented_data_update <- function(observed_dates, parameters,
 observed_dates_to_int <- function(data) {
   dates <- setdiff(names(data), c("id", "group"))
   
-  observed_dates <- data[, dates]
+  observed_dates <- unname(data[, dates])
   
-  as.data.frame(apply(observed_dates, c(1, 2), date_to_int))
+  apply(observed_dates, c(1, 2), date_to_int)
 }
   
 
-create_augmented_data_packer <- function(observed_dates) {
-  
+make_augmented_data_packer <- function(observed_dates) {
   monty::monty_packer(array = list(true_dates = dim(observed_dates),
                                    error_indicators = dim(observed_dates)))
 }
