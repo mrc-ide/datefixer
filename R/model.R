@@ -28,10 +28,10 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   domain <- cbind(rep(0, 1 + 2 * n_delays), c(1, rep(Inf, 2 * n_delays)))
   
-  density <- make_datefixer_density(parameters, groups, delay_map,
-                                    hyperparameters)
-  
   data_packer <- make_augmented_data_packer(observed_dates)
+  
+  density <- make_datefixer_density(parameters, groups, delay_map,
+                                    hyperparameters, data_packer)
   
   augmented_data_update <- make_augmented_data_update(observed_dates, 
                                                       parameters,
@@ -98,12 +98,13 @@ validate_data_and_delays <- function(data, delay_map) {
 }
 
 make_datefixer_density <- function(parameters, groups, delay_map,
-                                   hyperparameters) {
+                                   hyperparameters, data_packer) {
   
   density <- function(pars) {
     names(pars) <- parameters
     
-    log_likelihood <- datefixer_log_likelihood(pars, groups, delay_map)
+    log_likelihood <- datefixer_log_likelihood(pars, groups, delay_map,
+                                               data_packer)
   }
   
   density
@@ -136,8 +137,8 @@ make_prior <- function(parameters, hyperparameters, domain) {
     ))
 }
 
-datefixer_log_likelihood <- function(pars, groups, delay_map) {
-  augmented_data <- model$data_packer$unpack(attr(pars, "data"))
+datefixer_log_likelihood <- function(pars, groups, delay_map, data_packer) {
+  augmented_data <- data_packer$unpack(attr(pars, "data"))
   
   ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
                                                augmented_data$error_indicators)
