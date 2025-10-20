@@ -144,7 +144,7 @@ datefixer_log_likelihood <- function(pars, groups, delay_map, data_packer) {
                                                augmented_data$error_indicators)
   
   ll_delays <- 
-    datefixer_log_likelihood_delays(augmented_data$true_dates,
+    datefixer_log_likelihood_delays(augmented_data$estimated_dates,
                                     groups,
                                     pars[grepl("^mean_delay", names(pars))],
                                     pars[grepl("^cv_delay", names(pars))],
@@ -161,12 +161,12 @@ datefixer_log_likelihood_errors <- function(prob_error, error_indicators) {
   n_errors * log(prob_error) + n_non_errors * log(1 - prob_error)
 }
 
-datefixer_log_likelihood_delays <- function(true_dates, groups, mean_delays,
+datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays,
                                             cv_delays, delay_map) {
 
   ll_by_delay <-
     vapply(seq_len(nrow(delay_map)), 
-           function(i) datefixer_log_likelihood_delays1(true_dates,
+           function(i) datefixer_log_likelihood_delays1(estimated_dates,
                                                         groups,
                                                         mean_delays[i],
                                                         cv_delays[i],
@@ -178,15 +178,15 @@ datefixer_log_likelihood_delays <- function(true_dates, groups, mean_delays,
 }
 
 #' @importFrom stats dgamma
-datefixer_log_likelihood_delays1 <- function(true_dates, groups, mean_delay,
+datefixer_log_likelihood_delays1 <- function(estimated_dates, groups, mean_delay,
                                              cv_delay, delay_info) {
   
   shape <- (1 / cv_delay)^2
   scale <- mean_delay / shape 
   
   delay_individuals <- groups %in% unlist(delay_info$group)
-  delay_values <- true_dates[delay_individuals, delay_info$to] -
-    true_dates[delay_individuals, delay_info$from]
+  delay_values <- estimated_dates[delay_individuals, delay_info$to] -
+    estimated_dates[delay_individuals, delay_info$from]
   
   sum(dgamma(delay_values, shape, scale = scale, log = TRUE))
 }
@@ -227,6 +227,6 @@ observed_dates_to_int <- function(data) {
   
 
 make_augmented_data_packer <- function(observed_dates) {
-  monty::monty_packer(array = list(true_dates = dim(observed_dates),
+  monty::monty_packer(array = list(estimated_dates = dim(observed_dates),
                                    error_indicators = dim(observed_dates)))
 }

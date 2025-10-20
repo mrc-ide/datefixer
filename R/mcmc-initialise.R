@@ -162,7 +162,7 @@ initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
-  true_dates <- t(vapply(seq_len(nrow(observed_dates)),
+  estimated_dates <- t(vapply(seq_len(nrow(observed_dates)),
                          function (i) initialise_row(observed_dates[i, ],
                                                    groups[i],
                                                    delay_map,
@@ -172,8 +172,8 @@ initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
   
 
   # Create the error indicators
-  error_indicators <- observed_dates != floor(true_dates)
+  error_indicators <- observed_dates != floor(estimated_dates)
   
-  list(true_dates = true_dates,
+  list(estimated_dates = estimated_dates,
        error_indicators = error_indicators)
 }
