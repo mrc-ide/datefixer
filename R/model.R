@@ -220,9 +220,9 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
 observed_dates_to_int <- function(data) {
   dates <- setdiff(names(data), c("id", "group"))
   
-  observed_dates <- unname(data[, dates])
+  observed_dates <- data_frame_to_array(data[, dates])
   
-  apply(observed_dates, c(1, 2), date_to_int)
+  date_to_int(observed_dates)
 }
   
 
