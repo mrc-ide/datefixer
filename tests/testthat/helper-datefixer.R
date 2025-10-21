@@ -1,4 +1,4 @@
-toy_model <- function() {
+toy_model <- function(control = mcmc_control()) {
   ## setup data
   
   delay_map <- data.frame(
@@ -46,7 +46,6 @@ toy_model <- function() {
   
   ## setup model
   hyperparameters <- datefixer_hyperparameters()
-  control <- mcmc_control()
   
   datefixer_model(sim_result$true_data, delay_map, hyperparameters, control)
 }
