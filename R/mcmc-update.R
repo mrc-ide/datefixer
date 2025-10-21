@@ -60,7 +60,7 @@ lproposal_ratio_delay <- function(nm, pars, pars_new, control, model) {
 update_prob_error <- function(state_chain, model, rng) {
   i <- model$parameters == "prob_error"
   
-  augmented_data <- attr(state_chain$pars, "data")
+  augmented_data <- model$data_packer$unpack(attr(state_chain$pars, "data"))
   
   beta_pars <- 
     update_prob_error_parameters(augmented_data$error_indicators,

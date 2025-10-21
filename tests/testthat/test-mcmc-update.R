@@ -43,14 +43,18 @@ test_that("update_prob_error updates correctly", {
   
   ## edge cases
   ## No non-errors (FALSE), shape2 = 0 must result in 1
-  attr(state_chain$pars, "data")$error_indicators[, ] <- TRUE
+  augmented_data <- model$data_packer$unpack(attr(state_chain$pars, "data"))
+  augmented_data$error_indicators[, ] <- TRUE
+  attr(state_chain$pars, "data") <- model$data_packer$pack(augmented_data)
   model$hyperparameters <- list(prob_error_shape1 = 2,
                                 prob_error_shape2 = 0)
   new_state_chain <- update_prob_error(state_chain, model, rng)
   expect_equal(new_state_chain$pars[i], 1)
   
   ## No errors (TRUE), shape1 = 0 must result in 0
-  attr(state_chain$pars, "data")$error_indicators[, ] <- FALSE
+  augmented_data <- model$data_packer$unpack(attr(state_chain$pars, "data"))
+  augmented_data$error_indicators[, ] <- FALSE
+  attr(state_chain$pars, "data") <- model$data_packer$pack(augmented_data)
   model$hyperparameters <- list(prob_error_shape1 = 0,
                                 prob_error_shape2 = 3)
   new_state_chain <- update_prob_error(state_chain, model, rng)

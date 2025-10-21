@@ -208,14 +208,14 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
 
     if (length(error_idx) > 0) {
       n_errors <- length(error_idx)
-      true_dates_for_errors <- as.integer(true_data[error_idx, col])
+      estimated_dates_for_errors <- as.integer(true_data[error_idx, col])
 
       proposed_dates <- sample(
         range_dates[1]:range_dates[2], n_errors, replace = TRUE
         )
 
       # Find any resampled dates for errors which match the true date
-      invalid_error <- which(proposed_dates == true_dates_for_errors)
+      invalid_error <- which(proposed_dates == estimated_dates_for_errors)
 
       # Fix these invalid errors
       while(length(invalid_error) > 0) {
@@ -223,7 +223,7 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
                              length(invalid_error), replace = TRUE)
         proposed_dates[invalid_error] <- new_sample
         invalid_error <- which(proposed_dates[invalid_error] ==
-                                 true_dates_for_errors[invalid_error])
+                                 estimated_dates_for_errors[invalid_error])
       }
 
       observed_data[error_idx, col] <- as.Date(proposed_dates,
