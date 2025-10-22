@@ -133,10 +133,10 @@ test_that("rows are initialised correctly in a complex example", {
   # onset -> report too long (12 days)
   individual_data_1 <- data.frame(
     id = 34, group = 4,
-    onset = as.Date("2025-07-03"),
-    hospitalisation = as.Date("2025-07-15"),
-    report = as.Date("2025-07-15"),
-    death = as.Date("2025-07-25"),
+    onset = date_to_int(as.Date("2025-07-03")),
+    hospitalisation = date_to_int(as.Date("2025-07-15")),
+    report = date_to_int(as.Date("2025-07-15")),
+    death = date_to_int(as.Date("2025-07-25")),
     discharge = as.Date(NA)
   )
   
@@ -147,10 +147,10 @@ test_that("rows are initialised correctly in a complex example", {
   # 2. no problematic delays = no change
   individual_data_2 <- data.frame(
     id = 34, group = 4,
-    onset = as.Date("2025-07-07"),
-    hospitalisation = as.Date("2025-07-15"),
-    report = as.Date("2025-07-15"),
-    death = as.Date("2025-07-25"),
+    onset = date_to_int(as.Date("2025-07-07")),
+    hospitalisation = date_to_int(as.Date("2025-07-15")),
+    report = date_to_int(as.Date("2025-07-15")),
+    death = date_to_int(as.Date("2025-07-25")),
     discharge = as.Date(NA)
   )
 
@@ -164,10 +164,10 @@ test_that("rows are initialised correctly in a complex example", {
   # onset -> death is also too short
   individual_data_3 <- data.frame(
     id = 34, group = 4,
-    onset = as.Date("2025-07-04"),
-    hospitalisation = as.Date("2025-07-10"),
-    report = as.Date("2025-07-12"),
-    death = as.Date("2025-07-11"),
+    onset = date_to_int(as.Date("2025-07-04")),
+    hospitalisation = date_to_int(as.Date("2025-07-10")),
+    report = date_to_int(as.Date("2025-07-12")),
+    death = date_to_int(as.Date("2025-07-11")),
     discharge = as.Date(NA)
   )
   
@@ -179,10 +179,10 @@ test_that("rows are initialised correctly in a complex example", {
   # hospitalisation -> death too short (1 day)
   individual_data_4 <- data.frame(
     id = 34, group = 4,
-    onset = as.Date("2025-07-03"),
-    hospitalisation = as.Date("2025-07-10"),
-    report = as.Date("2025-07-16"),
-    death = as.Date("2025-07-11"),
+    onset = date_to_int(as.Date("2025-07-03")),
+    hospitalisation = date_to_int(as.Date("2025-07-10")),
+    report = date_to_int(as.Date("2025-07-16")),
+    death = date_to_int(as.Date("2025-07-11")),
     discharge = as.Date(NA)
   )
   
@@ -226,10 +226,10 @@ test_that("rows are initialised correctly in a complex example", {
   # onset now updated but hospitalisation date not being imputed
   individual_data_6 <- data.frame(
     id = 22, group = 4,
-    onset = as.Date("2025-03-29"),
+    onset = date_to_int(as.Date("2025-03-29")),
     hospitalisation = as.Date(NA),
-    report = as.Date("2025-04-15"),
-    death = as.Date("2025-04-27"),
+    report = date_to_int(as.Date("2025-04-15")),
+    death = date_to_int(as.Date("2025-04-27")),
     discharge = as.Date(NA)
   )
   
