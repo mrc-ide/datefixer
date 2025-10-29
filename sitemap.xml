@@ -4,9 +4,10 @@
 <url><loc>/LICENSE.html</loc></url>
 <url><loc>/authors.html</loc></url>
 <url><loc>/index.html</loc></url>
+<url><loc>/reference/datefixer_hyperparameters.html</loc></url>
+<url><loc>/reference/datefixer_model.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/mcmc_control.html</loc></url>
-<url><loc>/reference/mcmc_hyperparameters.html</loc></url>
 <url><loc>/reference/mcmc_run.html</loc></url>
 <url><loc>/reference/simulate_data.html</loc></url>
 </urlset>
