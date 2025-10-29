@@ -35,7 +35,7 @@ mcmc_run <- function(model,
   samples$data <- model$data_packer$unpack(samples$data)
   ## Convert estimated dates to dates
   samples$data$estimated_dates <- 
-    as.character(int_to_date(floor(samples$data$estimated_dates)))
+    int_to_date(floor(samples$data$estimated_dates))
   
   samples
   
