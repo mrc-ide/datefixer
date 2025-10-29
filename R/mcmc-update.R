@@ -40,7 +40,7 @@ propose_pars_delay <- function(nm, pars, control, model, rng) {
   sdlog <- if (grepl("^mean", nm)) control$mean_sdlog else control$cv_sdlog
   
   pars[[i]] <- 
-    monty::monty_random_log_normal(pars[[i]], sdlog, rng)
+    monty::monty_random_log_normal(log(pars[[i]]), sdlog, rng)
   
   pars
 }
