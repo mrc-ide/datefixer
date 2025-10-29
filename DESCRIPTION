@@ -21,4 +21,4 @@ Imports:
     stats,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-Remotes: mrc-ide/monty
+Remotes: mrc-ide/monty@mrc-6769
