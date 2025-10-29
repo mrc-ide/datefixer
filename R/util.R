@@ -11,14 +11,7 @@ date_to_int <- function(date, origin = "1970-01-01") {
 
 
 int_to_date <- function(int, origin = "1970-01-01") {
-  date <- int + as.Date(origin)
-  
-  d <- dim(int)
-  if (!is.null(d)) {
-    date <- array(date, d)
-  }
-  
-  date
+  int + as.Date(origin)
 }
 
 
