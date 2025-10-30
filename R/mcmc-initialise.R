@@ -132,8 +132,8 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
   
   ### TEMPORARY FIX
   for (i in seq_len(nrow(group_delay_map))) {
-    from_event <- as.numeric(valid_paths$from[i])
-    to_event <- as.numeric(valid_paths$to[i])
+    from_event <- as.numeric(group_delay_map$from[i])
+    to_event <- as.numeric(group_delay_map$to[i])
     if (individual_data[[from_event]] >= individual_data[[to_event]]) {
       individual_data[[to_event]] <- individual_data[[from_event]] + 1
     }
