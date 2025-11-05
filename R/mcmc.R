@@ -62,6 +62,11 @@ mcmc_run <- function(model,
 ##' @param lower_quantile Lower quantile used for initialisation of true dates
 ##' 
 ##' @param upper_quantile Upper quantile used for initialisation of true dates
+##' 
+##' @param mean_sdlog The sdlog proposal parameter for the delay means
+##' 
+##' @param cv_sdlog The sdlog proposal parameter for the delay coefficients of
+##'   variation
 ##'
 ##' @return List of control parameters
 ##'
@@ -73,7 +78,9 @@ mcmc_control <- function(n_steps = 1000,
                          parallel = FALSE,
                          n_workers = 1,
                          lower_quantile = 0.01,
-                         upper_quantile = 0.99) {
+                         upper_quantile = 0.99,
+                         mean_sdlog = 1,
+                         cv_sdlog = 1) {
   
   list(n_steps = n_steps,
        burnin = burnin,
@@ -82,5 +89,7 @@ mcmc_control <- function(n_steps = 1000,
        parallel = parallel,
        n_workers = n_workers,
        lower_quantile = lower_quantile,
-       upper_quantile = upper_quantile)
+       upper_quantile = upper_quantile, 
+       mean_sdlog = mean_sdlog,
+       cv_sdlog = cv_sdlog)
 }
