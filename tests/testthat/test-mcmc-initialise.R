@@ -34,15 +34,15 @@ delay_params <- data.frame(
            "hospitalisation", "onset", "hospitalisation"),
   to = c("report", "report", "report", "report", "death", "hospitalisation",
          "discharge", "hospitalisation", "death"),
-  delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-  delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+  mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+  cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 )
 
 control <- mcmc_control()
 quantile_range <- c(control$lower_quantile, control$upper_quantile)
 
-shape <- (1 / delay_params$delay_cv)^2
-scale <- delay_params$delay_mean / shape
+shape <- (1 / delay_params$cv_delay)^2
+scale <- delay_params$mean_delay / shape
 exp_min <- qgamma(quantile_range[1], shape = shape, scale = scale)
 exp_max <- qgamma(quantile_range[2], shape = shape, scale = scale)
 
@@ -76,8 +76,8 @@ delay_params <- data.frame(
   group = 3,
   from = c("onset", "hospitalisation"),
   to = c("hospitalisation", "discharge"),
-  delay_mean = 7,
-  delay_cv = 0.25
+  mean_delay = 7,
+  cv_delay = 0.25
 )
 
 control <- mcmc_control()
@@ -87,10 +87,10 @@ quantile_range <- c(control$lower_quantile, control$upper_quantile)
 # onset -> hospitalisation too short
 delay_boundaries <- calculate_delay_boundaries(delay_params,
                                                quantile_range)
-
+group <- 3
 rng <- monty::monty_rng_create(1)
 
-result <- initialise_row(individual_data, delay_map, delay_boundaries, rng)
+result <- initialise_row(individual_data, group, delay_map, delay_boundaries, rng)
 
 # hospitalisation should be identified as incompatible, incompatible date and
 # missing date of discharge should both be imputed
@@ -115,8 +115,8 @@ test_that("rows are initialised correctly in a complex example", {
     group = 4,
     from = c("onset", "onset", "hospitalisation"),
     to = c("report", "hospitalisation", "death"),
-    delay_mean = 7,
-    delay_cv = 0.25
+    mean_delay = 7,
+    cv_delay = 0.25
   )
   
   control <- mcmc_control()

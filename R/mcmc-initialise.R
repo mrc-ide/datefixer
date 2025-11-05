@@ -27,8 +27,8 @@ calculate_transitive_steps <- function(delay_map) {
 calculate_delay_boundaries <- function(delay_params, quantile_range) {
   delay_params %>%
     mutate(
-      shape = (1 / delay_cv)^2,
-      scale = delay_mean / shape,
+      shape = (1 / cv_delay)^2,
+      scale = mean_delay / shape,
       # find the delay values at the specified quantiles
       min_delay = qgamma(quantile_range[1], shape = shape, scale = scale),
       max_delay = qgamma(quantile_range[2], shape = shape, scale = scale)
@@ -50,40 +50,40 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
   group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
                                                     function(g) group %in% g), ]
   group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
-  group_graph <- graph_from_data_frame(group_delay_map[, c("from", "to")],
-                                       directed = TRUE)
-
-  while (TRUE) {
   
   # Find all incompatible delays (direct and transitive)
   valid_paths <- calculate_transitive_steps(group_delay_map)
   incompatible_events <- list()
 
+  group_graph <- graph_from_data_frame(
+    group_delay_map[, c("from", "to")], directed = TRUE)
+  
   for (i in 1:nrow(valid_paths)) {
-
     from_event <- valid_paths$from[i]
     to_event <- valid_paths$to[i]
-
+    
     date1 <- individual_data[from_event]
     date2 <- individual_data[to_event]
-
+    
     if (!is.na(date1) && !is.na(date2)) {
-      # For the current path, find the direct delays that compose it
+      # For the current path, find the direct (1-step) delays that compose it
       path_nodes_list <- all_shortest_paths(group_graph,
                                             from = from_event,
                                             to = to_event)$res
+      
       if (length(path_nodes_list) > 0) {
         path_nodes <- names(path_nodes_list[[1]])
         direct_rules_on_path <- data.frame(from = head(path_nodes, -1),
                                            to = tail(path_nodes, -1))
+        
         # Sum the min/max boundaries of these direct delays to get the total allowed range
         boundaries <- inner_join(direct_rules_on_path,
                                  group_delay_boundaries,
                                  by = c("from", "to"))
-
         if (nrow(boundaries) == nrow(direct_rules_on_path)) {
           min_allowed <- sum(boundaries$min_delay)
           max_allowed <- sum(boundaries$max_delay)
+          
           # Check if the observed total delay is outside the allowed range
           if (as.numeric(date2 - date1) < min_allowed || as.numeric(date2 - date1) > max_allowed) {
             incompatible_events[[length(incompatible_events) + 1]] <- c(from_event, to_event)
@@ -93,51 +93,42 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
     }
   }
   
-  if (length(incompatible_events) == 0) {
-    break
-  }
-
   # Remove the most problematic date
-  problem_counts <- table(unlist(incompatible_events))
-  max_problems <- max(problem_counts)
-  candidates_for_removal <- names(problem_counts[problem_counts == max_problems])
-  
-  date_to_remove <- if (length(candidates_for_removal) == 1) {
-    candidates_for_removal
+  if (length(incompatible_events) > 0) {
+    problem_counts <- table(unlist(incompatible_events))
+    max_problems <- max(problem_counts)
+    candidates_for_removal <- names(problem_counts[problem_counts == max_problems])
+    
+    date_to_remove <- if (length(candidates_for_removal) == 1) {
+      candidates_for_removal
     } else {
       # remove the most outlying
       date_values <- unlist(individual_data[1, candidates_for_removal])
-      row_dates <- unlist(individual_data[1, group_dates])
-      median_val <- median(row_dates, na.rm = TRUE)
+      median_val <- median(date_values, na.rm = TRUE)
       outlier_idx <- which.max(abs(date_values - median_val))
       candidates_for_removal[outlier_idx]
     }
-
-    individual_data[[date_to_remove]] <- NA
+    
+    individual_data[[date_to_remove]] <- as.Date(NA)
   }
-
+  
   # Impute missing dates - find nicer way to do this?
   max_iter <- 10
   iter <- 0
-
   while(any(is.na(individual_data[group_dates])) && iter < max_iter) {
     for (j in seq_len(nrow(group_delay_boundaries))) {
       from_event <- group_delay_boundaries$from[j]
       to_event <- group_delay_boundaries$to[j]
       bounds <- group_delay_boundaries[j, ]
-
+      
       imputed_delay <- floor(median(c(bounds$min_delay, bounds$max_delay)))
-
+      
       if (!is.na(individual_data[[from_event]]) && is.na(individual_data[[to_event]])) {
         individual_data[[to_event]] <- individual_data[[from_event]] + imputed_delay
       } else if (is.na(individual_data[[from_event]]) && !is.na(individual_data[[to_event]])) {
         individual_data[[from_event]] <- individual_data[[to_event]] - imputed_delay
       }
     }
-    if (!imputed_this_pass) {
-      break
-    }
-    
     iter <- iter + 1
   }
   
@@ -150,10 +141,10 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
     }
   }
   
-
+  
   individual_data[group_dates] <- individual_data[group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
-
+  
   individual_data
 }
 
@@ -163,8 +154,8 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
 initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
                                       control, rng) {
   
-  delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
-  delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
+  delay_map$mean_delay <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
+  delay_map$cv_delay <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
   init_settings <- list(quantile_range = c(control$lower_quantile,
                                            control$upper_quantile))
   
