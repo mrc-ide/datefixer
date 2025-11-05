@@ -1,5 +1,12 @@
 date_to_int <- function(date, origin = "1970-01-01") {
-  as.integer(as.Date(date) - as.Date(origin))
+  int <- as.integer(as.Date(date) - as.Date(origin))
+  
+  d <- dim(date)
+  if (!is.null(d)) {
+    int <- array(int, d)
+  }
+  
+  int
 }
 
 
@@ -9,5 +16,5 @@ int_to_date <- function(int, origin = "1970-01-01") {
 
 
 data_frame_to_array <- function(df) {
-  array(df, dim(df))
+  array(unlist(df), dim(df))
 }

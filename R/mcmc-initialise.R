@@ -42,13 +42,13 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 #' @importFrom dplyr inner_join
 #' @importFrom stats median
 #' @importFrom utils head tail
-initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
-  
-  current_group <- individual_data$group
-  group_delay_map <- delay_map[sapply(
-    delay_map$group, function(g) current_group %in% g), ]
-  group_delay_boundaries <- delay_boundaries[sapply(
-    delay_boundaries$group, function(g) current_group %in% g), ]
+initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
+                           rng) {
+
+  group_delay_map <- delay_map[sapply(delay_map$group,
+                                      function(g) group %in% g), ]
+  group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
+                                                    function(g) group %in% g), ]
   group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
   group_graph <- graph_from_data_frame(group_delay_map[, c("from", "to")],
                                        directed = TRUE)
@@ -63,8 +63,9 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 
     from_event <- valid_paths$from[i]
     to_event <- valid_paths$to[i]
-    date1 <- individual_data[[from_event]]
-    date2 <- individual_data[[to_event]]
+
+    date1 <- individual_data[from_event]
+    date2 <- individual_data[to_event]
 
     if (!is.na(date1) && !is.na(date2)) {
       # For the current path, find the direct delays that compose it
@@ -118,58 +119,19 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
   # Impute missing dates - find nicer way to do this?
   max_iter <- 10
   iter <- 0
-  
-  while (any(is.na(individual_data[, group_dates])) && iter < max_iter) {
-    missing_dates <- group_dates[sapply(
-      group_dates, function(d) is.na(individual_data[[d]]))]
-    
-    imputed_this_pass <- FALSE
-    print(missing_dates)
-    for (missing_date in missing_dates) {
-      #browser()
-      print(missing_date)
-      lower_bounds <- c(NULL)
-      upper_bounds <- c(NULL)
-      
-      rules_from <- subset(group_delay_boundaries, to == missing_date)
-      for (k in seq_len(nrow(rules_from))) {
-        from_event <- rules_from$from[k]
-        from_date <- individual_data[[from_event]]
-        if (!is.null(from_date)) {
-          lower_bounds <- c(lower_bounds, from_date + floor(rules_from$min_delay[k]))
-          upper_bounds <- c(upper_bounds, from_date + floor(rules_from$max_delay[k]))
-        }
-      }
-      
-      rules_to <- subset(group_delay_boundaries, from == missing_date)
-      for (k in seq_len(nrow(rules_to))) {
-        to_event <- rules_to$to[k]
-        to_date <- individual_data[[to_event]]
-        if (!is.null(to_date)) {
-          lower_bounds <- c(lower_bounds, to_date - floor(rules_to$max_delay[k]))
-          upper_bounds <- c(upper_bounds, to_date - floor(rules_to$min_delay[k]))
-        }
-      }
 
-      final_lower <- max(lower_bounds, na.rm = TRUE)
-      final_upper <- min(upper_bounds, na.rm = TRUE)
-      
-      # Impute if a valid interval can be found
-      imputed_date <- NA
-      if (final_lower <= final_upper) {
-        if (!is.null(final_lower) && !is.null(final_upper)) {
-          imputed_date <- final_lower
-        } else if (!is.null(final_lower)) {
-          imputed_date <- final_lower
-        } else if (!is.null(final_upper)) {
-          imputed_date <- final_upper
-        }
-        
-        if (!is.na(imputed_date)) {
-          #individual_data[[missing_date]] <- date_to_int(imputed_date)
-          individual_data[[missing_date]] <- imputed_date
-          imputed_this_pass <- TRUE
-        }
+  while(any(is.na(individual_data[group_dates])) && iter < max_iter) {
+    for (j in seq_len(nrow(group_delay_boundaries))) {
+      from_event <- group_delay_boundaries$from[j]
+      to_event <- group_delay_boundaries$to[j]
+      bounds <- group_delay_boundaries[j, ]
+
+      imputed_delay <- floor(median(c(bounds$min_delay, bounds$max_delay)))
+
+      if (!is.na(individual_data[[from_event]]) && is.na(individual_data[[to_event]])) {
+        individual_data[[to_event]] <- individual_data[[from_event]] + imputed_delay
+      } else if (is.na(individual_data[[from_event]]) && !is.na(individual_data[[to_event]])) {
+        individual_data[[from_event]] <- individual_data[[to_event]] - imputed_delay
       }
     }
     if (!imputed_this_pass) {
@@ -178,8 +140,18 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
     
     iter <- iter + 1
   }
+  
+  ### TEMPORARY FIX
+  for (i in seq_len(nrow(group_delay_map))) {
+    from_event <- as.numeric(group_delay_map$from[i])
+    to_event <- as.numeric(group_delay_map$to[i])
+    if (individual_data[[from_event]] >= individual_data[[to_event]]) {
+      individual_data[[to_event]] <- individual_data[[from_event]] + 1
+    }
+  }
+  
 
-  individual_data[, group_dates] <- individual_data[, group_dates] + 
+  individual_data[group_dates] <- individual_data[group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
 
   individual_data
@@ -188,39 +160,31 @@ initialise_row <- function(individual_data, delay_map, delay_boundaries, rng) {
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(model, control, rng) {
+initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
+                                      control, rng) {
   
-  observed_dates <- model$observed_dates
-  groups <- model$groups
-  delay_map <- model$delays
-  delay_params <- model$delays
-  delay_params$delay_mean <- 7
-  delay_params$delay_cv <- 0.25
+  delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
+  delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
   init_settings <- list(quantile_range = c(control$lower_quantile,
                                            control$upper_quantile))
   
   
-  delay_boundaries <- calculate_delay_boundaries(delay_params,
+  delay_boundaries <- calculate_delay_boundaries(delay_map,
                                                  init_settings$quantile_range)
 
   # Initialise each individual row
-  true_dates <- observed_dates
-  true_dates$group <- groups
-  true_dates$id <- seq_len(nrow(true_dates))
-  true_dates <- true_dates %>%
-    group_by(id) %>%
-    group_modify(~ initialise_row(.x, delay_map, delay_boundaries, rng))
-
-  # Keep as tibble or covert to data frame?
-  true_dates <- as.data.frame(true_dates)
-  date_cols <- names(observed_dates)
-  true_dates <- true_dates[, date_cols]
+  estimated_dates <- t(vapply(seq_len(nrow(observed_dates)),
+                         function (i) initialise_row(observed_dates[i, ],
+                                                   groups[i],
+                                                   delay_map,
+                                                   delay_boundaries,
+                                                   rng),
+                         numeric(ncol(observed_dates))))
+  
 
   # Create the error indicators
-  error_indicators <- as.data.frame(observed_dates != floor(true_dates))
+  error_indicators <- observed_dates != floor(estimated_dates)
   
-  model$true_dates <- true_dates
-  model$error_indicators <- error_indicators
-  
-  model
+  list(estimated_dates = estimated_dates,
+       error_indicators = error_indicators)
 }
