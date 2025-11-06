@@ -59,23 +59,18 @@ expect_equal(exp_max, act_max)
 
 test_that("rows initialised correctly when there is 1 error and 1 missing", {
 
-individual_data <- data.frame(
-  id = 1, group = 3,
-  onset = as.Date("2025-05-01"),
-  hospitalisation = as.Date("2025-05-02"),
-  discharge = as.Date(NA)
-)
+# dates converted into vector of integers
+individual_data <- c(date_to_int("2025-05-01"), date_to_int("2025-05-02"), NA)
 
+# names of dates converted to integers corresponding to the column number/
+# position in individual_data vector
+# 1 = onset
+# 2 = hospitalisation
+# 3 = discharge
 delay_map <- data.frame(
-  from = c("onset", "hospitalisation"),
-  to = c("hospitalisation", "discharge"),
-  group = I(list(3, 3))
-)
-
-delay_params <- data.frame(
+  from = c(1, 2),
+  to = c(2, 3),
   group = 3,
-  from = c("onset", "hospitalisation"),
-  to = c("hospitalisation", "discharge"),
   mean_delay = 7,
   cv_delay = 0.25
 )
@@ -84,20 +79,24 @@ control <- mcmc_control()
 quantile_range <- c(control$lower_quantile, control$upper_quantile)
 
 # min_delay = 3.579235, max_delay = 11.70001
-# onset -> hospitalisation too short
-delay_boundaries <- calculate_delay_boundaries(delay_params,
-                                               quantile_range)
+# 1 (onset) -> 2 (hospitalisation) too short
+delay_boundaries <- calculate_delay_boundaries(delay_map, quantile_range)
+
 group <- 3
 rng <- monty::monty_rng_create(1)
 
 result <- initialise_row(individual_data, group, delay_map, delay_boundaries, rng)
 
-# hospitalisation should be identified as incompatible, incompatible date and
-# missing date of discharge should both be imputed
-expect_true(!is.na(result$discharge))
-expect_true(result$hospitalisation != individual_data$hospitalisation)
-# need tolerance because dates in result are continuous - unclass(result$onset)
-expect_equal(result$onset, individual_data$onset, tolerance = 0.99)
+# 2 (hospitalisation) should be identified as incompatible, incompatible date
+# and missing date of discharge (3) should both be imputed
+expect_true(!is.na(result[3]))
+
+# TODO: ISSUE this has not been imputed to be >min_delay
+expect_true(result[2] != individual_data[2])
+
+# date 1 should be the same - need tolerance because dates in result are
+# continuous
+expect_equal(result[1], individual_data[1], tolerance = 0.99)
 
 })
 
@@ -105,16 +104,24 @@ test_that("rows are initialised correctly in a complex example", {
   
   # onset -> report
   # onset -> hospitalisation -> death
-  delay_map <- data.frame(
-    from = c("onset", "onset", "hospitalisation"),
-    to = c("report", "hospitalisation", "death"),
-    group = I(list(4, 4, 4))
-  )
+  # delay_map <- data.frame(
+  #   from = c("onset", "onset", "hospitalisation"),
+  #   to = c("report", "hospitalisation", "death"),
+  #   group = I(list(4, 4, 4))
+  # )
+  # 
+  # delay_params <- data.frame(
+  #   group = 4,
+  #   from = c("onset", "onset", "hospitalisation"),
+  #   to = c("report", "hospitalisation", "death"),
+  #   mean_delay = 7,
+  #   cv_delay = 0.25
+  # )
   
-  delay_params <- data.frame(
-    group = 4,
-    from = c("onset", "onset", "hospitalisation"),
-    to = c("report", "hospitalisation", "death"),
+  delay_map <- data.frame(
+    from = c(1, 1, 2),
+    to = c(3, 2, 4),
+    group = I(list(4, 4, 4)),
     mean_delay = 7,
     cv_delay = 0.25
   )
@@ -123,7 +130,7 @@ test_that("rows are initialised correctly in a complex example", {
   quantile_range <- c(control$lower_quantile, control$upper_quantile)
   
   # min_delay = 3.579235, max_delay = 11.70001
-  delay_boundaries <- calculate_delay_boundaries(delay_params,
+  delay_boundaries <- calculate_delay_boundaries(delay_map,
                                                  quantile_range)
   
   rng <- monty::monty_rng_create(1)
@@ -131,109 +138,138 @@ test_that("rows are initialised correctly in a complex example", {
   # 1. onset date involved in 2 defined problematic delays
   # onset -> hospitalisation too long (12 days)
   # onset -> report too long (12 days)
-  individual_data_1 <- data.frame(
-    id = 34, group = 4,
-    onset = date_to_int(as.Date("2025-07-03")),
-    hospitalisation = date_to_int(as.Date("2025-07-15")),
-    report = date_to_int(as.Date("2025-07-15")),
-    death = date_to_int(as.Date("2025-07-25")),
-    discharge = as.Date(NA)
-  )
+  # individual_data_1 <- data.frame(
+  #   id = 34, group = 4,
+  #   onset = date_to_int(as.Date("2025-07-03")),
+  #   hospitalisation = date_to_int(as.Date("2025-07-15")),
+  #   report = date_to_int(as.Date("2025-07-15")),
+  #   death = date_to_int(as.Date("2025-07-25")),
+  #   discharge = as.Date(NA)
+  # )
+  
+  individual_data_1 <- c(date_to_int("2025-07-03"), date_to_int("2025-07-15"),
+                         date_to_int("2025-07-15"), date_to_int("2025-07-25"),
+                         NA)
+  group <- 4
   
   # expect onset date to be changed
-  res_1 <- initialise_row(individual_data_1, delay_map, delay_boundaries, rng)
+  # TODO: ISSUE
+  res_1 <- initialise_row(individual_data_1, group, delay_map, delay_boundaries, rng)
   expect_true(res_1$onset != individual_data_1$onset)
   
   # 2. no problematic delays = no change
-  individual_data_2 <- data.frame(
-    id = 34, group = 4,
-    onset = date_to_int(as.Date("2025-07-07")),
-    hospitalisation = date_to_int(as.Date("2025-07-15")),
-    report = date_to_int(as.Date("2025-07-15")),
-    death = date_to_int(as.Date("2025-07-25")),
-    discharge = as.Date(NA)
-  )
-
+  # individual_data_2 <- data.frame(
+  #   id = 34, group = 4,
+  #   onset = date_to_int(as.Date("2025-07-07")),
+  #   hospitalisation = date_to_int(as.Date("2025-07-15")),
+  #   report = date_to_int(as.Date("2025-07-15")),
+  #   death = date_to_int(as.Date("2025-07-25")),
+  #   discharge = as.Date(NA)
+  # )
+  
+  individual_data_2 <- c(date_to_int("2025-07-07"), date_to_int("2025-07-15"),
+                         date_to_int("2025-07-15"), date_to_int("2025-07-25"),
+                         NA)
+  
   # expect no change - need tolerance to account for continuous dates
-  res_2 <- initialise_row(individual_data_2, delay_map, delay_boundaries, rng)
+  res_2 <- initialise_row(individual_data_2, group, delay_map, delay_boundaries, rng)
   expect_equal(res_2, individual_data_2, tolerance = 0.99)
   
   # 3. two problematic delays: defined and transitive
   # hospitalisation -> death too short and
   # transitive delay between onset -> death = 2* 3.579235 = 7.16, so
   # onset -> death is also too short
-  individual_data_3 <- data.frame(
-    id = 34, group = 4,
-    onset = date_to_int(as.Date("2025-07-04")),
-    hospitalisation = date_to_int(as.Date("2025-07-10")),
-    report = date_to_int(as.Date("2025-07-12")),
-    death = date_to_int(as.Date("2025-07-11")),
-    discharge = as.Date(NA)
-  )
+  # individual_data_3 <- data.frame(
+  #   id = 34, group = 4,
+  #   onset = date_to_int(as.Date("2025-07-04")),
+  #   hospitalisation = date_to_int(as.Date("2025-07-10")),
+  #   report = date_to_int(as.Date("2025-07-12")),
+  #   death = date_to_int(as.Date("2025-07-11")),
+  #   discharge = as.Date(NA)
+  # )
   
-  res_3 <- initialise_row(individual_data_3, delay_map, delay_boundaries, rng)
+  individual_data_3 <- c(date_to_int("2025-07-04"), date_to_int("2025-07-10"),
+                         date_to_int("2025-07-12"), date_to_int("2025-07-11"),
+                         NA)
+  
+  # TODO: ISSUE
+  res_3 <- initialise_row(individual_data_3, group, delay_map, delay_boundaries, rng)
   expect_true(res_3$death != individual_data_3$death)
   
   # 4. two unrelated problematic delays
   # onset -> report too long (13 days)
   # hospitalisation -> death too short (1 day)
-  individual_data_4 <- data.frame(
-    id = 34, group = 4,
-    onset = date_to_int(as.Date("2025-07-03")),
-    hospitalisation = date_to_int(as.Date("2025-07-10")),
-    report = date_to_int(as.Date("2025-07-16")),
-    death = date_to_int(as.Date("2025-07-11")),
-    discharge = as.Date(NA)
-  )
+  # individual_data_4 <- data.frame(
+  #   id = 34, group = 4,
+  #   onset = date_to_int(as.Date("2025-07-03")),
+  #   hospitalisation = date_to_int(as.Date("2025-07-10")),
+  #   report = date_to_int(as.Date("2025-07-16")),
+  #   death = date_to_int(as.Date("2025-07-11")),
+  #   discharge = as.Date(NA)
+  # )
   
-  res_4 <- initialise_row(individual_data_4, delay_map, delay_boundaries, rng)
+  individual_data_4 <- c(date_to_int("2025-07-03"), date_to_int("2025-07-10"),
+                         date_to_int("2025-07-16"), date_to_int("2025-07-11"),
+                         NA)
+  
+  res_4 <- initialise_row(individual_data_4, group, delay_map, delay_boundaries, rng)
   
   # identify most outlying for each problematic delay
-  group_dates <- names(individual_data_4[, -c(1:2)])
-  row_dates <- unlist(individual_data_4[1, group_dates])
-  median_val <- median(row_dates, na.rm = TRUE)
+  median_val <- median(individual_data_4, na.rm = TRUE)
   
-  candidates_for_removal1 <- c("onset", "report")
-  candidates_for_removal2 <- c("hospitalisation", "death")
+  # onset (1) -> report (3) too long (13 days)
+  # hospitalisation (2) -> death (4) too short (1 day)
+  candidates_for_removal1 <- c(1, 3)
+  candidates_for_removal2 <- c(2, 4)
   
-  date_values1 <- unlist(individual_data_4[1, candidates_for_removal1])
-  date_values2 <- unlist(individual_data_4[1, candidates_for_removal2])
+  date_values1 <- individual_data_4[candidates_for_removal1]
+  names(date_values1) <- candidates_for_removal1
+  date_values2 <- individual_data_4[candidates_for_removal2]
+  names(date_values2) <- candidates_for_removal2
   
-  outlier1 <- names(which.max(abs(date_values1 - median_val)))
-  outlier2 <- names(which.max(abs(date_values2 - median_val)))
+  outlier1 <- as.numeric(names(which.max(abs(date_values1 - median_val))))
+  outlier2 <- as.numeric(names(which.max(abs(date_values2 - median_val))))
   
-  expect_true(res_4[[outlier1]] != individual_data_4[[outlier1]])
-  expect_true(res_4[[outlier2]] != individual_data_4[[outlier2]])
+  # TODO: ISSUE
+  expect_true(res_4[outlier1] != individual_data_4[outlier1])
+  expect_true(res_4[outlier2] != individual_data_4[outlier2])
   
   # 5. can handle a scenario where there is only one non-missing date
-  individual_data_5 <- data.frame(
-    id = 34, group = 4,
-    onset = as.Date(NA),
-    hospitalisation = as.Date("2025-07-10"),
-    report = as.Date(NA),
-    death = as.Date(NA),
-    discharge = as.Date(NA)
-  )
+  # individual_data_5 <- data.frame(
+  #   id = 34, group = 4,
+  #   onset = as.Date(NA),
+  #   hospitalisation = as.Date("2025-07-10"),
+  #   report = as.Date(NA),
+  #   death = as.Date(NA),
+  #   discharge = as.Date(NA)
+  # )
   
-  res_5 <- initialise_row(individual_data_5, delay_map, delay_boundaries, rng)
-  exp_imputed <- c("onset", "report", "death")
-  expect_true(all(!is.na(res_5[, exp_imputed])))
+  individual_data_5 <- c(NA, date_to_int("2025-07-10"), NA, NA, NA)
+  
+  res_5 <- initialise_row(individual_data_5, group, delay_map, delay_boundaries, rng)
+  # expect onset, report and death dates to be imputed
+  exp_imputed <- c(1, 3, 4)
+  expect_true(all(!is.na(res_5[exp_imputed])))
   
   # 6. weird issue
   # onset to report too long
   # onset to death too long
   # hospitalisation missing...
   # onset now updated but hospitalisation date not being imputed
-  individual_data_6 <- data.frame(
-    id = 22, group = 4,
-    onset = date_to_int(as.Date("2025-03-29")),
-    hospitalisation = as.Date(NA),
-    report = date_to_int(as.Date("2025-04-15")),
-    death = date_to_int(as.Date("2025-04-27")),
-    discharge = as.Date(NA)
-  )
+  # individual_data_6 <- data.frame(
+  #   id = 22, group = 4,
+  #   onset = date_to_int(as.Date("2025-03-29")),
+  #   hospitalisation = as.Date(NA),
+  #   report = date_to_int(as.Date("2025-04-15")),
+  #   death = date_to_int(as.Date("2025-04-27")),
+  #   discharge = as.Date(NA)
+  # )
   
-  res_6 <- initialise_row(individual_data_6, delay_map, delay_boundaries, rng)
+  individual_data_6 <- c(date_to_int("2025-03-29"), NA,
+                         date_to_int("2025-04-15"), date_to_int("2025-04-27"),
+                         NA)
+  
+  res_6 <- initialise_row(individual_data_6, group, delay_map, delay_boundaries, rng)
   
 }) 
 
