@@ -4,21 +4,14 @@
 \alias{mcmc_run}
 \title{Run MCMC}
 \usage{
-mcmc_run(
-  observed_data,
-  delays,
-  control = mcmc_control(),
-  hyperparameters = mcmc_hyperparameters()
-)
+mcmc_run(model, sampler, control = mcmc_control())
 }
 \arguments{
-\item{observed_data}{Observed data}
+\item{model}{Model}
 
-\item{delays}{Delays information}
+\item{sampler}{Sampler}
 
 \item{control}{List of control parameters}
-
-\item{hyperparameters}{List of hyperparameters}
 }
 \value{
 Output
