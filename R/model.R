@@ -208,7 +208,12 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
       
       density <- density_fn(pars)
     } else {
-      ## here we will do the update bit
+      augmented_data <- data_packer$unpack(augmented_data)
+      augmented_data <- update_augmented_data(augmented_data, observed_dates,
+                                              pars, groups, delay_map, control,
+                                              rng)
+      augmented_data <- data_packer$pack(augmented_data)
+      attr(pars, "data") <- augmented_data
       density <- density_fn(pars)
     }
     
