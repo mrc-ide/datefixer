@@ -20,6 +20,10 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   groups <- data$group
   observed_dates <- observed_dates_to_int(data)
   
+  is_delay_in_group <- vapply(seq_len(nrow(delay_map)),
+                              function(i) unique(groups) %in% unlist(delay_map$group[i]),
+                              logical(length(unique(groups))))
+  
   n_delays <- nrow(delay_map)
   delay_ids <- seq_len(n_delays)
   parameters <- c("prob_error",
@@ -30,7 +34,7 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   data_packer <- make_augmented_data_packer(observed_dates)
   
-  density <- make_datefixer_density(parameters, groups, delay_map,
+  density <- make_datefixer_density(parameters, groups, delay_map, is_delay_in_group,
                                     hyperparameters, data_packer)
   
   augmented_data_update <- make_augmented_data_update(observed_dates, 
@@ -97,13 +101,13 @@ validate_data_and_delays <- function(data, delay_map) {
   delay_map
 }
 
-make_datefixer_density <- function(parameters, groups, delay_map,
+make_datefixer_density <- function(parameters, groups, delay_map, is_delay_in_group,
                                    hyperparameters, data_packer) {
   
   density <- function(pars) {
     names(pars) <- parameters
     
-    log_likelihood <- datefixer_log_likelihood(pars, groups, delay_map,
+    log_likelihood <- datefixer_log_likelihood(pars, groups, delay_map, is_delay_in_group,
                                                data_packer)
   }
   
@@ -137,7 +141,8 @@ make_prior <- function(parameters, hyperparameters, domain) {
     ))
 }
 
-datefixer_log_likelihood <- function(pars, groups, delay_map, data_packer) {
+datefixer_log_likelihood <- function(pars, groups, delay_map, is_delay_in_group, data_packer) {
+  browser()
   augmented_data <- data_packer$unpack(attr(pars, "data"))
   
   ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
@@ -171,7 +176,7 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
                                                         mean_delays[i],
                                                         cv_delays[i],
                                                         delay_map[i, ]),
-           numeric(1))
+           numeric(length(groups)))
   
   sum(ll_by_delay)
   
@@ -188,7 +193,46 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, groups, mean_delay
   delay_values <- estimated_dates[delay_individuals, delay_info$to] -
     estimated_dates[delay_individuals, delay_info$from]
   
-  sum(dgamma(delay_values, shape, scale = scale, log = TRUE))
+  ll <- rep(0, length(groups))
+  
+  ll[delay_individuals] <- dgamma(delay_values, shape, scale = scale, log = TRUE)
+  ll
+}
+
+datefixer_log_likelihood_delays2 <- function(estimated_dates, groups, mean_delays,
+                                            cv_delays, delay_map, is_delay_in_group) {
+  
+  delay_from <- delay_map$from
+  delay_to <- delay_map$to
+  ll_delays <-
+    vapply(seq_len(nrow(estimated_dates)), 
+           function(i) sum(datefixer_log_likelihood_delays21(estimated_dates[i, ],
+                                                        is_delay_in_group[groups[i], ],
+                                                        mean_delays,
+                                                        cv_delays,
+                                                        delay_from,
+                                                        delay_to)),
+           numeric(1))
+  
+  sum(ll_delays)
+  
+}
+
+#' @importFrom stats dgamma
+datefixer_log_likelihood_delays21 <- function(estimated_dates, is_delay_in_group, mean_delay,
+                                              cv_delay, delay_from, delay_to) {
+  
+  shape <- (1 / cv_delay[is_delay_in_group])^2
+  scale <- mean_delay[is_delay_in_group] / shape
+  
+  ##
+  delay_values <- estimated_dates[delay_to[is_delay_in_group]] -
+    estimated_dates[delay_from[is_delay_in_group]]
+  
+  ll <- rep(0, length(is_delay_in_group))
+  ll[is_delay_in_group] <- dgamma(delay_values, shape, scale = scale, log = TRUE)
+  
+  ll
 }
 
 
