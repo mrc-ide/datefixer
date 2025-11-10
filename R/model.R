@@ -174,8 +174,9 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
   
   ll_delays <- array(0, c(length(groups), length(mean_delays)))
   for (i in unique(groups)) {
-    ll_delays[groups == i, ] <- 
-      datefixer_log_likelihood_delays1(estimated_dates[groups == i, ],
+    group_i <- groups == i
+    ll_delays[group_i, ] <- 
+      datefixer_log_likelihood_delays1(estimated_dates[group_i, , drop = FALSE],
                                        mean_delays,
                                        cv_delays,
                                        delay_info$from,
@@ -188,14 +189,18 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
 }
 
 #' @importFrom stats dgamma
-datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delay,
-                                             cv_delay, delay_from, delay_to,
+datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
+                                             cv_delays, delay_from, delay_to,
                                              is_delay_in_group) {
+  is_vec <- is.vector(estimated_dates)
+  if (is_vec) {
+    estimated_dates <- array(estimated_dates, c(1, length(estimated_dates)))
+  }
   
   group_size <- nrow(estimated_dates)
   
-  shape <- (1 / cv_delay[is_delay_in_group])^2
-  scale <- mean_delay[is_delay_in_group] / shape
+  shape <- (1 / cv_delays[is_delay_in_group])^2
+  scale <- mean_delays[is_delay_in_group] / shape
   
   delay_values <- estimated_dates[, delay_to[is_delay_in_group], drop = FALSE] -
     estimated_dates[, delay_from[is_delay_in_group], drop = FALSE]
@@ -207,6 +212,10 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delay,
              dgamma(delay_values[, i], shape[i], scale = scale[i], log = TRUE)
            },
            numeric(group_size))
+  
+  if (is_vec) {
+    ll <- drop(ll)
+  }
   
   ll
 }
