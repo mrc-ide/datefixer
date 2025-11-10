@@ -20,11 +20,6 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   groups <- data$group
   observed_dates <- observed_dates_to_int(data)
   
-  dates <- setdiff(names(data), c("id", "group"))
-  
-  delay_map$from <- match(delay_map$from, dates)
-  delay_map$to <- match(delay_map$to, dates)
-  
   n_delays <- nrow(delay_map)
   delay_ids <- seq_len(n_delays)
   parameters <- c("prob_error",
