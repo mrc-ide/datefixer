@@ -30,7 +30,7 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
       min_delay = qgamma(quantile_range[1], shape = shape, scale = scale),
       max_delay = qgamma(quantile_range[2], shape = shape, scale = scale)
     ) %>%
-    select(group, from, to, min_delay, max_delay)
+    select(from, to, min_delay, max_delay)
 }
 
 
