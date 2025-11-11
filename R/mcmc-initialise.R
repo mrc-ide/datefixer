@@ -30,7 +30,7 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
       min_delay = qgamma(quantile_range[1], shape = shape, scale = scale),
       max_delay = qgamma(quantile_range[2], shape = shape, scale = scale)
     ) %>%
-    select(group, from, to, min_delay, max_delay)
+    select(from, to, min_delay, max_delay)
 }
 
 
@@ -39,13 +39,9 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 #' @importFrom dplyr inner_join
 #' @importFrom stats median
 #' @importFrom utils head tail
-initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
-                           rng) {
+initialise_row <- function(individual_data, group, group_delay_map,
+                           group_delay_boundaries, rng) {
   
-  group_delay_map <- delay_map[sapply(delay_map$group,
-                                      function(g) group %in% g), ]
-  group_delay_boundaries <- delay_boundaries[sapply(delay_boundaries$group,
-                                                    function(g) group %in% g), ]
   group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
 
   # Find all incompatible delays (direct and transitive)
@@ -149,8 +145,11 @@ initialise_row <- function(individual_data, group, delay_map, delay_boundaries,
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
+initialise_augmented_data <- function(observed_dates, pars, groups, delay_info,
                                       control, rng) {
+  
+  delay_map <- data.frame(from = delay_info$from,
+                          to = delay_info$to)
   
   delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
   delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
@@ -161,14 +160,19 @@ initialise_augmented_data <- function(observed_dates, pars, groups, delay_map,
   delay_boundaries <- calculate_delay_boundaries(delay_map,
                                                  init_settings$quantile_range)
 
+  initialise1 <- function(i) {
+    is_delay_in_group <- delay_info$is_delay_in_group[, groups[i]]
+    initialise_row(observed_dates[i, ],
+                   groups[i],
+                   delay_map[is_delay_in_group, ],
+                   delay_boundaries[is_delay_in_group, ],
+                   rng)
+  }
+  
   # Initialise each individual row
-  estimated_dates <- t(vapply(seq_len(nrow(observed_dates)),
-                         function (i) initialise_row(observed_dates[i, ],
-                                                   groups[i],
-                                                   delay_map,
-                                                   delay_boundaries,
-                                                   rng),
-                         numeric(ncol(observed_dates))))
+  estimated_dates <- 
+    t(vapply(seq_len(nrow(observed_dates)), initialise1,
+             numeric(ncol(observed_dates))))
   
 
   # Create the error indicators
