@@ -14,6 +14,7 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
   augmented_data
 }
 
+# Updating the augmented data for one individual
 update_augmented_data1 <- function(estimated_dates, error_indicators,
                                    observed_dates, pars, group, delay_info,
                                    control, rng) {
@@ -21,6 +22,9 @@ update_augmented_data1 <- function(estimated_dates, error_indicators,
   estimated_dates <- update_estimated_dates(estimated_dates, error_indicators,
                                             observed_dates, pars, group,
                                             delay_info, control, rng)
+  
+  #TODO: Add update_error_indicators()
+  #TODO: Consider having moveE/swapE here?
   
   list(estimated_dates = estimated_dates,
        error_indicators = error_indicators)
@@ -44,6 +48,7 @@ update_estimated_dates <- function(estimated_dates, error_indicators,
   estimated_dates
 }
 
+# Updating one estimated date for an individual
 update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
                                     observed_dates, mean_delays, cv_delays,
                                     group, delay_info, control, rng) {
