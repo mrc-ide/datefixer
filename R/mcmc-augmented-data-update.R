@@ -71,11 +71,47 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
   
   if (is.na(error_indicators[i])) {
     ## update missing date
+    proposed_date <- update_missing_date()
   } else if (error_indicators[i]) {
     ## update error date
+    proposed_date <- update_error_date()
   } else {
     ## update non-error date
+    proposed_date <- update_nonerror_date()
   }
+  
+  ## update current date in estimated_dates with proposed date
+  estimated_dates[i] <- proposed_date
+  
+  ## proposed log likelihood
+  ll_proposed <- datefixer_log_likelihood_delays1(
+    estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
+    is_delay_in_group)
+  
+  ## TODO: Calculate acceptance probability
+  ratio_post <- ll_proposed - ll_current
+  
+  
   
   estimated_dates
 }
+
+
+# Propose update for missing date
+# For the date to be moved, a new value is drawn from the marginal posterior
+# of one of the delays this date is involved in.
+# If the date is involved in several delays, one of the delays is randomly
+# selected.
+update_missing_date <- function() {}
+
+# Propose update for erroneous date
+# For the date to be moved, a new value is drawn from the marginal posterior
+# of one of the delays this date is involved in.
+# If the date is involved in several delays, one of the delays is randomly
+# selected. Reject automatically if estimated date matches observed date.
+update_error_date <- function() {}
+
+# Propose update for correct date
+# If the date is correct, resample uniformly over the observed date.
+update_nonerror_date <- function() {}
+
