@@ -239,7 +239,7 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
     } else {
       augmented_data <- data_packer$unpack(augmented_data)
       augmented_data <- update_augmented_data(augmented_data, observed_dates,
-                                              pars, groups, delay_map, control,
+                                              pars, groups, delay_info, control,
                                               rng)
       augmented_data <- data_packer$pack(augmented_data)
       attr(pars, "data") <- augmented_data
