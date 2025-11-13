@@ -227,14 +227,14 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
   augmented_data_update <- function(pars, rng) {
     augmented_data <- attr(pars, "data")
     
+    names(pars) <- parameters
+    
     if (is.null(augmented_data)) {
       ## augmented data does not exist, so we initialise it
-      names(pars) <- parameters
       augmented_data <- initialise_augmented_data(observed_dates, pars, groups,
                                                   delay_info, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
       attr(pars, "data") <- augmented_data
-
       density <- density_fn(pars)
     } else {
       augmented_data <- data_packer$unpack(augmented_data)
