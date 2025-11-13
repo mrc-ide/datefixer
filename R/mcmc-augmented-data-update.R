@@ -1,6 +1,6 @@
 update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
                                   delay_info, control, rng) {
-  
+
   for (i in seq_len(nrow(observed_dates))) {
     augmented_data_i <- 
       update_augmented_data1(augmented_data$estimated_dates[i, ],
@@ -31,6 +31,7 @@ update_augmented_data1 <- function(estimated_dates, error_indicators,
   
 }
 
+# Updating all the relevant estimated dates for one individual
 update_estimated_dates <- function(estimated_dates, error_indicators,
                                    observed_dates, pars, group, delay_info,
                                    control, rng) {
@@ -48,19 +49,19 @@ update_estimated_dates <- function(estimated_dates, error_indicators,
   estimated_dates
 }
 
-# Updating one estimated date for an individual
+# Updating one of the estimated dates for an individual
 update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
                                     observed_dates, mean_delays, cv_delays,
                                     group, delay_info, control, rng) {
   
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  ## TRUE/FALSE is date i for the given group involved in each delay
+  ## TRUE/FALSE is date i for the given group involved in each relevant delay
   is_date_in_delay <- is_delay_in_group &
     (i == delay_info$from | i == delay_info$to)
-  
+
   if (!any(is_date_in_delay)) {
-    ## date is not associated with any delays, so no update
+    ## date is not associated with any delays for that group, so no update
     return(estimated_dates)
   }
   
@@ -71,7 +72,11 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
   
   if (is.na(error_indicators[i])) {
     ## update missing date
-    proposed_date <- update_missing_date()
+    proposal <- update_missing_date(i, estimated_dates, observed_dates,
+                                    mean_delays, cv_delays, delay_info,
+                                    is_delay_in_group, is_date_in_delay)
+    proposed_date <- proposal$proposed_date
+    proposal_correction <- 0
   } else if (error_indicators[i]) {
     ## update error date
     proposed_date <- update_error_date()
@@ -102,7 +107,56 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
 # of one of the delays this date is involved in.
 # If the date is involved in several delays, one of the delays is randomly
 # selected.
-update_missing_date <- function() {}
+update_missing_date <- function(i, estimated_dates, observed_dates, 
+                                mean_delays, cv_delays, delay_info,
+                                is_delay_in_group, is_date_in_delay) {
+  
+  ## Which delays involve this date
+  which_delays <- which(is_date_in_delay)
+
+  ## If it is involved in several delays, randomly select one
+  if (length(which_delays) > 1) {
+    selected_delay <- which_delays[sample(length(which_delays), 1)]
+  } else {
+    selected_delay <- which_delays
+  }
+  
+  ## Is date i the 'from' or 'to' in this delay
+  is_from <- (i == delay_info$from[selected_delay])
+  
+  ## Find the other date in this date pair
+  if (is_from) {
+    other_date_idx <- delay_info$to[selected_delay]
+    other_date <- estimated_dates[other_date_idx]
+    ## proposed date = other_date - delay
+    ## so delay = other_date - proposed_date
+    sign <- -1
+  } else {
+    other_date_idx <- delay_info$from[selected_delay]
+    other_date <- estimated_dates[other_date_idx]
+    ## proposed date = other_date + delay  
+    ## so delay = proposed_date - other_date
+    sign <- 1
+  }
+  
+  ## Sample a delay from the marginal posterior (gamma distribution)
+  mean_delay <- mean_delays[selected_delay]
+  cv_delay <- cv_delays[selected_delay]
+  
+  shape <- 1 / (cv_delay^2)
+  rate <- shape / mean_delay
+
+  sampled_delay <- rgamma(1, shape = shape, rate = rate)
+  
+  ## Calculate proposed date based on the sampled delay
+  proposed_date <- other_date + sign * sampled_delay
+
+  list(
+    proposed_date = proposed_date,
+    selected_delay = selected_delay
+  )
+  
+}
 
 # Propose update for erroneous date
 # For the date to be moved, a new value is drawn from the marginal posterior
