@@ -65,6 +65,9 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
     return(estimated_dates)
   }
   
+  ## store current date
+  current_date <- estimated_dates[i]
+  
   ## current log likelihood
   ll_current <- datefixer_log_likelihood_delays1(
     estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
@@ -72,17 +75,19 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
   
   if (is.na(error_indicators[i])) {
     ## update missing date
-    proposal <- update_missing_date(i, estimated_dates, observed_dates,
-                                    mean_delays, cv_delays, delay_info,
-                                    is_delay_in_group, is_date_in_delay)
+    proposal <- update_missing_date(i, estimated_dates, mean_delays, cv_delays,
+                                    delay_info, is_date_in_delay)
     proposed_date <- proposal$proposed_date
-    proposal_correction <- 0
   } else if (error_indicators[i]) {
     ## update error date
-    proposed_date <- update_error_date()
+    proposal <- update_error_date(i, estimated_dates, observed_dates,
+                                       mean_delays, cv_delays,
+                                       delay_info, is_date_in_delay)
+    proposed_date <- proposal$proposed_date
   } else {
     ## update non-error date
-    proposed_date <- update_nonerror_date()
+    proposal <- update_nonerror_date(i, estimated_dates, observed_dates)
+    proposed_date <- proposal$proposed_date
   }
   
   ## update current date in estimated_dates with proposed date
@@ -93,27 +98,33 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
     estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
     is_delay_in_group)
   
-  ## TODO: Calculate acceptance probability
-  ratio_post <- ll_proposed - ll_current
+  ## accept/reject
+  ratio_post <- sum(ll_proposed[is_date_in_delay]) - sum(ll_current[is_date_in_delay])
   
+  ## handle invalid proposals
+  if (!is.finite(ratio_post)) {
+    estimated_dates[i] <- current_date
+    return(estimated_dates)
+  }
   
-  
-  estimated_dates
+  if (log(monty::monty_random_real(rng)) < ratio_post) {
+    ## accept -> return updated estimated_dates
+    return(estimated_dates)
+  } else {
+    ## reject -> restore original date
+    estimated_dates[i] <- current_date
+    return(estimated_dates)
+  }
 }
 
 
-# Propose update for missing date
-# For the date to be moved, a new value is drawn from the marginal posterior
-# of one of the delays this date is involved in.
-# If the date is involved in several delays, one of the delays is randomly
-# selected.
-update_missing_date <- function(i, estimated_dates, observed_dates, 
-                                mean_delays, cv_delays, delay_info,
-                                is_delay_in_group, is_date_in_delay) {
+# Sample new date using randomly selected delay
+sample_from_delay <- function(i, estimated_dates, mean_delays, cv_delays,
+                              delay_info, is_date_in_delay) {
   
   ## Which delays involve this date
   which_delays <- which(is_date_in_delay)
-
+  
   ## If it is involved in several delays, randomly select one
   if (length(which_delays) > 1) {
     selected_delay <- which_delays[sample(length(which_delays), 1)]
@@ -145,16 +156,29 @@ update_missing_date <- function(i, estimated_dates, observed_dates,
   
   shape <- 1 / (cv_delay^2)
   rate <- shape / mean_delay
-
+  
   sampled_delay <- rgamma(1, shape = shape, rate = rate)
   
   ## Calculate proposed date based on the sampled delay
   proposed_date <- other_date + sign * sampled_delay
-
+  
   list(
     proposed_date = proposed_date,
     selected_delay = selected_delay
   )
+  
+}
+
+# Propose update for missing date
+# For the date to be moved, a new value is drawn from the marginal posterior
+# of one of the delays this date is involved in.
+# If the date is involved in several delays, one of the delays is randomly
+# selected.
+update_missing_date <- function(i, estimated_dates, mean_delays, cv_delays,
+                                delay_info, is_date_in_delay) {
+  
+  sample_from_delay(i, estimated_dates, mean_delays, cv_delays, 
+                    delay_info, is_date_in_delay)
   
 }
 
@@ -163,9 +187,30 @@ update_missing_date <- function(i, estimated_dates, observed_dates,
 # of one of the delays this date is involved in.
 # If the date is involved in several delays, one of the delays is randomly
 # selected. Reject automatically if estimated date matches observed date.
-update_error_date <- function() {}
+update_error_date <- function(i, estimated_dates, observed_dates, 
+                              mean_delays, cv_delays, delay_info,
+                              is_date_in_delay) {
+  
+  proposal <- sample_from_delay(i, estimated_dates, mean_delays, cv_delays,
+                                delay_info, is_date_in_delay)
+  
+  if (floor(proposal$proposed_date) == floor(observed_dates[i])) {
+    ## Return current date (no change) to automatically reject
+    proposal$proposed_date <- estimated_dates[i]
+  }
+  
+  proposal
+  
+}
 
 # Propose update for correct date
 # If the date is correct, resample uniformly over the observed date.
-update_nonerror_date <- function() {}
+update_nonerror_date <- function(i, estimated_dates, observed_dates) {
+  
+  observed_date <- floor(observed_dates[i])
+  proposed_date <- observed_date + runif(1)
+  
+  list(proposed_date = proposed_date)
+  
+}
 
