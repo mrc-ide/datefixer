@@ -86,7 +86,7 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
     proposed_date <- proposal$proposed_date
   } else {
     ## update non-error date
-    proposal <- update_nonerror_date(i, estimated_dates, observed_dates)
+    proposal <- update_nonerror_date(i, estimated_dates, observed_dates, rng)
     proposed_date <- proposal$proposed_date
   }
   
@@ -205,10 +205,10 @@ update_error_date <- function(i, estimated_dates, observed_dates,
 
 # Propose update for correct date
 # If the date is correct, resample uniformly over the observed date.
-update_nonerror_date <- function(i, estimated_dates, observed_dates) {
+update_nonerror_date <- function(i, estimated_dates, observed_dates, rng) {
   
   observed_date <- floor(observed_dates[i])
-  proposed_date <- observed_date + runif(1)
+  proposed_date <- observed_date + monty::monty_random_real(rng)
   
   list(proposed_date = proposed_date)
   
