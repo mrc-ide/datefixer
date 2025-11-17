@@ -34,7 +34,7 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
                                     hyperparameters, data_packer)
   
   augmented_data_update <- 
-    make_augmented_data_update(observed_dates, parameters, groups,delay_info,
+    make_augmented_data_update(observed_dates, parameters, groups, delay_info,
                                control, density, data_packer)
   
   likelihood <- monty::monty_model(
@@ -66,7 +66,7 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
 ##'   distribution for the probability of error
 ##'
 ##' @param mean_delay_scale The scale parameter (mean) of the exponential prior
-##'   distribution for the means of tht(e delays
+##'   distribution for the means of the delays
 ##'
 ##' @param cv_delay_scale The scale parameter (mean) of the exponential prior
 ##'   distribution for the coefficients of variations of the delays
