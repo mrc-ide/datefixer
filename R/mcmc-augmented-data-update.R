@@ -127,11 +127,12 @@ sample_from_delay <- function(i, estimated_dates, mean_delays, cv_delays,
   
   ## If it is involved in several delays, randomly select one
   if (length(which_delays) > 1) {
-    selected_delay <- which_delays[sample(length(which_delays), 1)]
+    delay_idx <- ceiling(length(which_delays) * monty::monty_random_real(rng))
+    selected_delay <- which_delays[delay_idx]
   } else {
     selected_delay <- which_delays
   }
-  
+
   ## Is date i the 'from' or 'to' in this delay
   is_from <- (i == delay_info$from[selected_delay])
   
