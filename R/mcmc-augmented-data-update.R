@@ -107,14 +107,13 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
     return(estimated_dates)
   }
   
-  if (log(monty::monty_random_real(rng)) < ratio_post) {
-    ## accept -> return updated estimated_dates
-    return(estimated_dates)
-  } else {
+  accept <- log(monty::monty_random_real(rng)) < ratio_post
+  if (!accept) {
     ## reject -> restore original date
     estimated_dates[i] <- current_date
-    return(estimated_dates)
   }
+  
+  estimated_dates
 }
 
 
