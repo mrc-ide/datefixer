@@ -65,35 +65,23 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
     return(estimated_dates)
   }
   
-  ## current log likelihood
-  ll_current <- datefixer_log_likelihood_delays1(
-    estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
-    is_delay_in_group)
-  
-  
   estimated_dates_new <- 
     propose_estimated_date(i, estimated_dates, error_indicators, observed_dates,
                            mean_delays, cv_delays, delay_info, is_date_in_delay,
                            rng)
   
-  if (isTRUE(error_indicators[i]) & floor(estimated_dates_new[i]) == observed_dates[i]) {
-    estimated_dates_new[i] <- estimated_dates[i]
-  }
-  
-  ## proposed log likelihood
-  ll_proposed <- datefixer_log_likelihood_delays1(
-    estimated_dates_new, mean_delays, cv_delays, delay_info$from, delay_info$to,
-    is_delay_in_group)
-  
-  ## accept/reject
-  ratio_post <- sum(ll_proposed[is_date_in_delay]) - sum(ll_current[is_date_in_delay])
+  accept_prob <-
+    calc_accept_prob_estimated_date(i, estimated_dates_new, estimated_dates,
+                                    error_indicators, observed_dates,
+                                    mean_delays, cv_delays, delay_info,
+                                    is_delay_in_group, is_date_in_delay)
   
   ## handle invalid proposals
-  if (is.infinite(ratio_post) & ratio_post > 0) {
+  if (is.infinite(accept_prob) & accept_prob > 0) {
     return(estimated_dates)
   }
   
-  accept <- log(monty::monty_random_real(rng)) < ratio_post
+  accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
     ## reject -> restore original date
     estimated_dates <- estimated_dates_new
@@ -168,4 +156,42 @@ propose_estimated_date <- function(i, estimated_dates, error_indicators,
   }
   
   estimated_dates
+}
+
+## calculate the (log) acceptance probability for updating estimated_dates to
+## estimated_dates_new where i is the updated date index
+calc_accept_prob_estimated_date <- function(i, estimated_dates_new,
+                                            estimated_dates, error_indicators,
+                                            observed_dates, mean_delays,
+                                            cv_delays, delay_info,
+                                            is_delay_in_group,
+                                            is_date_in_delay) {
+  
+  ## if error indicator is TRUE, and proposed estimated date is on observed date
+  ## we will automatically reject
+  reject <- isTRUE(error_indicators[i]) & 
+    floor(estimated_dates_new[i]) == observed_dates[i]
+  if (reject) {
+    return(-Inf)
+  }
+  
+  ## current log likelihood
+  ll_current <- datefixer_log_likelihood_delays1(
+    estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
+    is_delay_in_group)
+  
+  ## proposed log likelihood
+  ll_proposed <- datefixer_log_likelihood_delays1(
+    estimated_dates_new, mean_delays, cv_delays, delay_info$from, delay_info$to,
+    is_delay_in_group)
+  
+  ## accept/reject
+  ratio_post <- sum(ll_proposed) - sum(ll_current)
+  
+  ## No need to calculate proposal correction if ratio_post is -Inf
+  if (ratio_post == -Inf) {
+    return(-Inf)
+  }
+  
+  ratio_post
 }
