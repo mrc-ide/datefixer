@@ -240,9 +240,7 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
       attr(pars, "data") <- augmented_data
       density <- density_fn(pars)
     } else {
-      augmented_data <- data_packer$unpack(augmented_data)
-      augmented_data$error_indicators <- 
-        apply(augmented_data$error_indicators, c(1, 2), as.logical)
+      augmented_data <- unpack_augmented_data(augmented_data, data_packer)
       augmented_data <- update_augmented_data(augmented_data, observed_dates,
                                               pars, groups, delay_info, control,
                                               rng)
@@ -268,4 +266,14 @@ observed_dates_to_int <- function(data) {
 make_augmented_data_packer <- function(observed_dates) {
   monty::monty_packer(array = list(estimated_dates = dim(observed_dates),
                                    error_indicators = dim(observed_dates)))
+}
+
+
+unpack_augmented_data <- function(augmented_data, data_packer) {
+  augmented_data <- data_packer$unpack(augmented_data)
+  augmented_data$error_indicators <- 
+    apply(augmented_data$error_indicators, 
+          seq_along(dim(augmented_data$error_indicators)),
+          as.logical)
+  augmented_data
 }
