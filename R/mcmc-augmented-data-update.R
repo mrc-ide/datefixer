@@ -2,11 +2,10 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
                                   delay_info, control, rng) {
 
   for (i in seq_len(nrow(observed_dates))) {
+    augmented_data_i <- lapply(augmented_data, function(x) x[i, ])
     augmented_data_i <- 
-      update_augmented_data1(augmented_data$estimated_dates[i, ],
-                             augmented_data$error_indicators[i, ],
-                             observed_dates[i, ], pars, groups[i], delay_info,
-                             control, rng)
+      update_augmented_data1(augmented_data_i, observed_dates[i, ], pars,
+                             groups[i], delay_info, control, rng)
     augmented_data$estimated_dates[i, ] <- augmented_data_i$estimated_dates
     augmented_data$error_indicators[i, ] <- augmented_data_i$error_indicators
   }
@@ -16,36 +15,30 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
 
 
 # Updating the augmented data for one individual
-update_augmented_data1 <- function(estimated_dates, error_indicators,
-                                   observed_dates, pars, group, delay_info,
-                                   control, rng) {
+update_augmented_data1 <- function(augmented_data, observed_dates, pars, group,
+                                   delay_info, control, rng) {
   
-  estimated_dates <- update_estimated_dates(estimated_dates, error_indicators,
-                                            observed_dates, pars, group,
-                                            delay_info, control, rng)
+  augmented_data <- update_estimated_dates(augmented_data, observed_dates, pars,
+                                           group, delay_info, control, rng)
   
   #TODO: Add update_error_indicators()
   #TODO: Consider having moveE/swapE here?
   
-  list(estimated_dates = estimated_dates,
-       error_indicators = error_indicators)
-  
+  augmented_data
 }
 
 
 # Updating all the relevant estimated dates for one individual
-update_estimated_dates <- function(estimated_dates, error_indicators,
-                                   observed_dates, pars, group, delay_info,
-                                   control, rng) {
+update_estimated_dates <- function(augmented_data, observed_dates, pars, group,
+                                   delay_info, control, rng) {
   
   mean_delays <- pars[grepl("^mean_delay", names(pars))]
   cv_delays <- pars[grepl("^cv_delay", names(pars))] 
 
   for (i in seq_along(observed_dates)) {
-    estimated_dates <- update_estimated_dates1(i, estimated_dates,
-                                               error_indicators, observed_dates,
-                                               mean_delays, cv_delays, group,
-                                               delay_info, control, rng)
+    estimated_dates <- 
+      update_estimated_dates1(i, augmented_data, observed_dates, mean_delays,
+                              cv_delays, group, delay_info, control, rng)
   }
   
   estimated_dates
@@ -53,9 +46,9 @@ update_estimated_dates <- function(estimated_dates, error_indicators,
 
 
 # Updating one of the estimated dates for an individual
-update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
-                                    observed_dates, mean_delays, cv_delays,
-                                    group, delay_info, control, rng) {
+update_estimated_dates1 <- function(i, augmented_data, observed_dates,
+                                    mean_delays, cv_delays, group, delay_info,
+                                    control, rng) {
   
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
@@ -65,27 +58,25 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
 
   if (!any(is_date_in_delay)) {
     ## date is not associated with any delays for that group, so no update
-    return(estimated_dates)
+    return(augmented_data)
   }
   
-  estimated_dates_new <- 
-    propose_estimated_date(i, estimated_dates, error_indicators, observed_dates,
-                           mean_delays, cv_delays, delay_info, is_date_in_delay,
-                           rng)
+  augmented_data_new <- 
+    propose_estimated_date(i, augmented_data, observed_dates, mean_delays,
+                           cv_delays, delay_info, is_date_in_delay, rng)
   
   accept_prob <-
-    calc_accept_prob_estimated_date(i, estimated_dates_new, estimated_dates,
-                                    error_indicators, observed_dates,
-                                    mean_delays, cv_delays, delay_info,
-                                    is_delay_in_group, is_date_in_delay)
+    calc_accept_prob_estimated_date(i, augmented_data_new, augmented_data,
+                                    observed_dates, mean_delays, cv_delays,
+                                    delay_info, is_delay_in_group,
+                                    is_date_in_delay)
   
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
-    ## reject -> restore original date
-    estimated_dates <- estimated_dates_new
+    augmented_data <- augmented_data_new
   }
   
-  estimated_dates
+  augmented_data
 }
 
 
@@ -140,50 +131,51 @@ sample_from_delay <- function(i, estimated_dates, mean_delays, cv_delays,
 
 
 ## proposed estimated date i for an individual
-propose_estimated_date <- function(i, estimated_dates, error_indicators,
-                                   observed_dates, mean_delays, cv_delays,
-                                   delay_info, is_date_in_delay, rng) {
+propose_estimated_date <- function(i, augmented_data, observed_dates,
+                                   mean_delays, cv_delays, delay_info,
+                                   is_date_in_delay, rng) {
   
-  if (isFALSE(error_indicators[i])) {
+  if (isFALSE(augmented_data$error_indicators[i])) {
     ## non-error - propose new value uniformly over observed date
-    estimated_dates[i] <- observed_dates[i] + monty::monty_random_real(rng)
+    proposed_date <- observed_dates[i] + monty::monty_random_real(rng)
   } else {
     ## error or missing - propose new value using delays
-    estimated_dates[i] <- 
-      sample_from_delay(i, estimated_dates, mean_delays, cv_delays,
-                        delay_info, is_date_in_delay, rng)
+    proposed_date <- 
+      sample_from_delay(i, augmented_data$estimated_dates, mean_delays,
+                        cv_delays, delay_info, is_date_in_delay, rng)
   }
   
-  estimated_dates
+  augmented_data$estimated_dates[i] <- proposed_date
+  
+  augmented_data
 }
 
 
 ## calculate the (log) acceptance probability for updating estimated_dates to
 ## estimated_dates_new where i is the updated date index
-calc_accept_prob_estimated_date <- function(i, estimated_dates_new,
-                                            estimated_dates, error_indicators,
-                                            observed_dates, mean_delays,
-                                            cv_delays, delay_info,
+calc_accept_prob_estimated_date <- function(i, augmented_data_new,
+                                            augmented_data, observed_dates,
+                                            mean_delays, cv_delays, delay_info,
                                             is_delay_in_group,
                                             is_date_in_delay) {
   
   ## if error indicator is TRUE, and proposed estimated date is on observed date
   ## we will automatically reject
-  reject <- isTRUE(error_indicators[i]) & 
-    floor(estimated_dates_new[i]) == observed_dates[i]
+  reject <- isTRUE(augmented_data_new$error_indicators[i]) & 
+    floor(augmented_data_new$estimated_dates[i]) == observed_dates[i]
   if (reject) {
     return(-Inf)
   }
   
   ## current log likelihood
   ll_current <- datefixer_log_likelihood_delays1(
-    estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
-    is_delay_in_group)
+    augmented_data$estimated_dates, mean_delays, cv_delays, delay_info$from,
+    delay_info$to, is_delay_in_group)
   
   ## new log likelihood
   ll_new <- datefixer_log_likelihood_delays1(
-    estimated_dates_new, mean_delays, cv_delays, delay_info$from, delay_info$to,
-    is_delay_in_group)
+    augmented_data_new$estimated_dates, mean_delays, cv_delays, delay_info$from,
+    delay_info$to, is_delay_in_group)
   
   if (any(ll_new == Inf)) {
     ## ended up in a situation that such a small delay has been drawn that
@@ -200,22 +192,22 @@ calc_accept_prob_estimated_date <- function(i, estimated_dates_new,
   }
   
   prop_current <- calc_proposal_density(
-    i, estimated_dates, error_indicators, observed_dates, mean_delays,
-    cv_delays, delay_info, is_date_in_delay)
+    i, augmented_data, observed_dates, mean_delays, cv_delays, delay_info,
+    is_date_in_delay)
   prop_new <- calc_proposal_density(
-    i, estimated_dates_new, error_indicators, observed_dates, mean_delays,
-    cv_delays, delay_info, is_date_in_delay)
+    i, augmented_data_new, observed_dates, mean_delays, cv_delays, delay_info,
+    is_date_in_delay)
   ratio_prop <- prop_current - prop_new
   
   ratio_post + ratio_prop
 }
 
 
-calc_proposal_density <- function(i, estimated_dates, error_indicators,
-                                  observed_dates, mean_delays, cv_delays,
-                                  delay_info, is_date_in_delay) {
+calc_proposal_density <- function(i, augmented_data, observed_dates,
+                                  mean_delays, cv_delays, delay_info,
+                                  is_date_in_delay) {
   
-  if (isFALSE(error_indicators[i])) {
+  if (isFALSE(augmented_data$error_indicators[i])) {
     ## non-error - proposal is uniform over one day so log-density is 0
     d <- 0
   } else {
@@ -224,7 +216,8 @@ calc_proposal_density <- function(i, estimated_dates, error_indicators,
     rate <- shape / mean_delays[is_date_in_delay]
     delay_from <- delay_info$from[is_date_in_delay]
     delay_to <- delay_info$to[is_date_in_delay]
-    delay_values <- estimated_dates[delay_to] - estimated_dates[delay_from]
+    delay_values <- augmented_data$estimated_dates[delay_to] - 
+      augmented_data$estimated_dates[delay_from]
     if (sum(is_date_in_delay) == 1) {
       ## single delay involving date i
       d <- dgamma(delay_values, shape, rate, log = TRUE)
