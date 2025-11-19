@@ -146,6 +146,8 @@ make_prior <- function(parameters, hyperparameters, domain) {
 
 datefixer_log_likelihood <- function(pars, groups, delay_info, data_packer) {
   augmented_data <- data_packer$unpack(attr(pars, "data"))
+  augmented_data$error_indicators <- 
+    apply(augmented_data$error_indicators, c(1, 2), as.logical)
   
   ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
                                                augmented_data$error_indicators)
@@ -234,10 +236,13 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
       augmented_data <- initialise_augmented_data(observed_dates, pars, groups,
                                                   delay_info, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
+      
       attr(pars, "data") <- augmented_data
       density <- density_fn(pars)
     } else {
       augmented_data <- data_packer$unpack(augmented_data)
+      augmented_data$error_indicators <- 
+        apply(augmented_data$error_indicators, c(1, 2), as.logical)
       augmented_data <- update_augmented_data(augmented_data, observed_dates,
                                               pars, groups, delay_info, control,
                                               rng)
