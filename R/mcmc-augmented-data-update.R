@@ -14,6 +14,7 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
   augmented_data
 }
 
+
 # Updating the augmented data for one individual
 update_augmented_data1 <- function(estimated_dates, error_indicators,
                                    observed_dates, pars, group, delay_info,
@@ -30,6 +31,7 @@ update_augmented_data1 <- function(estimated_dates, error_indicators,
        error_indicators = error_indicators)
   
 }
+
 
 # Updating all the relevant estimated dates for one individual
 update_estimated_dates <- function(estimated_dates, error_indicators,
@@ -48,6 +50,7 @@ update_estimated_dates <- function(estimated_dates, error_indicators,
   
   estimated_dates
 }
+
 
 # Updating one of the estimated dates for an individual
 update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
@@ -75,11 +78,6 @@ update_estimated_dates1 <- function(i, estimated_dates, error_indicators,
                                     error_indicators, observed_dates,
                                     mean_delays, cv_delays, delay_info,
                                     is_delay_in_group, is_date_in_delay)
-  
-  ## handle invalid proposals
-  if (is.infinite(accept_prob) & accept_prob > 0) {
-    return(estimated_dates)
-  }
   
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
@@ -140,6 +138,7 @@ sample_from_delay <- function(i, estimated_dates, mean_delays, cv_delays,
   
 }
 
+
 ## proposed estimated date i for an individual
 propose_estimated_date <- function(i, estimated_dates, error_indicators,
                                    observed_dates, mean_delays, cv_delays,
@@ -157,6 +156,7 @@ propose_estimated_date <- function(i, estimated_dates, error_indicators,
   
   estimated_dates
 }
+
 
 ## calculate the (log) acceptance probability for updating estimated_dates to
 ## estimated_dates_new where i is the updated date index
@@ -180,18 +180,60 @@ calc_accept_prob_estimated_date <- function(i, estimated_dates_new,
     estimated_dates, mean_delays, cv_delays, delay_info$from, delay_info$to,
     is_delay_in_group)
   
-  ## proposed log likelihood
-  ll_proposed <- datefixer_log_likelihood_delays1(
+  ## new log likelihood
+  ll_new <- datefixer_log_likelihood_delays1(
     estimated_dates_new, mean_delays, cv_delays, delay_info$from, delay_info$to,
     is_delay_in_group)
   
-  ## accept/reject
-  ratio_post <- sum(ll_proposed) - sum(ll_current)
+  if (any(ll_new == Inf)) {
+    ## ended up in a situation that such a small delay has been drawn that
+    ## when recalculated from the dates it is essentially 0, let's reject for
+    ## the moment
+    return(-Inf)
+  }
   
+  ratio_post <- sum(ll_new) - sum(ll_current)
+
   ## No need to calculate proposal correction if ratio_post is -Inf
   if (ratio_post == -Inf) {
     return(-Inf)
   }
   
-  ratio_post
+  prop_current <- calc_proposal_density(
+    i, estimated_dates, error_indicators, observed_dates, mean_delays,
+    cv_delays, delay_info, is_date_in_delay)
+  prop_new <- calc_proposal_density(
+    i, estimated_dates_new, error_indicators, observed_dates, mean_delays,
+    cv_delays, delay_info, is_date_in_delay)
+  ratio_prop <- prop_current - prop_new
+  
+  ratio_post + ratio_prop
+}
+
+
+calc_proposal_density <- function(i, estimated_dates, error_indicators,
+                                  observed_dates, mean_delays, cv_delays,
+                                  delay_info, is_date_in_delay) {
+  
+  if (isFALSE(error_indicators[i])) {
+    ## non-error - proposal is uniform over one day so log-density is 0
+    d <- 0
+  } else {
+    ## error or missing - proposal is based on delay(s)
+    shape <- 1 / (cv_delays[is_date_in_delay]^2)
+    rate <- shape / mean_delays[is_date_in_delay]
+    delay_from <- delay_info$from[is_date_in_delay]
+    delay_to <- delay_info$to[is_date_in_delay]
+    delay_values <- estimated_dates[delay_to] - estimated_dates[delay_from]
+    if (sum(is_date_in_delay) == 1) {
+      ## single delay involving date i
+      d <- dgamma(delay_values, shape, rate, log = TRUE)
+    } else {
+      ## multiple delays involving date i, so delay selected at random
+      d <- log(sum(dgamma(delay_values, shape, rate))) - 
+        log(sum(is_date_in_delay))
+    }
+  }
+  
+  d
 }
