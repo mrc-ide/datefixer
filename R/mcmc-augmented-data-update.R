@@ -84,7 +84,8 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
 }
 
 
-# Updating all the relevant estimated dates for one individual
+# Updating all the relevant error indicators (and corresponding estimated dates)
+# for one individual
 update_error_indicators <- function(augmented_data, observed_dates, group,
                                     prob_error, delay_info, control, rng) {
   
@@ -98,7 +99,8 @@ update_error_indicators <- function(augmented_data, observed_dates, group,
 }
 
 
-# Updating one of the estimated dates for an individual
+# Updating one of the error indicators (and corresponding estimated date) for an
+# individual
 update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
                                      prob_error, delay_info, control, rng) {
   
@@ -186,7 +188,7 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
 }
 
 
-## proposed estimated date i for an individual
+## propose estimated date i for an individual
 propose_estimated_date <- function(i, augmented_data, observed_dates,
                                    delay_info, is_date_in_delay, rng,
                                    update_error = FALSE) {
@@ -211,8 +213,8 @@ propose_estimated_date <- function(i, augmented_data, observed_dates,
 }
 
 
-## calculate the (log) acceptance probability for updating estimated_dates to
-## estimated_dates_new where i is the updated date index
+## calculate the (log) acceptance probability for updating augmented_data to
+## augmented_data_new where i is the updated date index
 calc_accept_prob <- function(i, augmented_data_new, augmented_data,
                              observed_dates, prob_error, delay_info, 
                              is_delay_in_group, is_date_in_delay) {
@@ -229,7 +231,6 @@ calc_accept_prob <- function(i, augmented_data_new, augmented_data,
   ll_delays_current <- datefixer_log_likelihood_delays1(
     augmented_data$estimated_dates, delay_info$mean, delay_info$cv,
     delay_info$from, delay_info$to, is_delay_in_group)
-  
   ## new delays log likelihood
   ll_delays_new <- datefixer_log_likelihood_delays1(
     augmented_data_new$estimated_dates, delay_info$mean, delay_info$cv,
@@ -243,8 +244,10 @@ calc_accept_prob <- function(i, augmented_data_new, augmented_data,
     return(-Inf)
   }
   
+  ## current errors log likelihood
   ll_errors_current <- datefixer_log_likelihood_errors(
     prob_error, augmented_data$error_indicators)
+  ## new errors log likelihood
   ll_errors_new <- datefixer_log_likelihood_errors(
     prob_error, augmented_data_new$error_indicators)
   
