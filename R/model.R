@@ -202,7 +202,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   group_size <- nrow(estimated_dates)
   
   shape <- (1 / cv_delays[is_delay_in_group])^2
-  scale <- mean_delays[is_delay_in_group] / shape
+  rate <- shape / mean_delays[is_delay_in_group]
   
   delay_values <- estimated_dates[, delay_to[is_delay_in_group], drop = FALSE] -
     estimated_dates[, delay_from[is_delay_in_group], drop = FALSE]
@@ -211,7 +211,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   ll[, is_delay_in_group] <- 
     vapply(seq_along(shape),
            function(i) {
-             dgamma(delay_values[, i], shape[i], scale = scale[i], log = TRUE)
+             dgamma(delay_values[, i], shape[i], rate = rate[i], log = TRUE)
            },
            numeric(group_size))
   
