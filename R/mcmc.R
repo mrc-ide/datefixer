@@ -32,7 +32,7 @@ mcmc_run <- function(model,
                                  thinning_factor = control$thinning_factor)
   
   ## Unpack augmented data
-  samples$data <- model$data_packer$unpack(samples$data)
+  samples$data <- unpack_augmented_data(samples$data, model$data_packer)
   ## Convert estimated dates to dates
   samples$data$estimated_dates <- 
     int_to_date(floor(samples$data$estimated_dates))
