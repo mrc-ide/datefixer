@@ -55,6 +55,7 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
 }
 
+
 ##' Create hyperparameters
 ##'
 ##' @title Create hyperparameters
@@ -84,6 +85,7 @@ datefixer_hyperparameters <- function(prob_error_shape1 = 1,
        cv_delay_scale = cv_delay_scale)
 }
 
+
 validate_data_and_delays <- function(data, delay_map) {
   ## Here we will validate the data and delays and check they are compatible
   
@@ -104,6 +106,7 @@ validate_data_and_delays <- function(data, delay_map) {
        is_delay_in_group = is_delay_in_group)
 }
 
+
 make_datefixer_density <- function(parameters, groups, delay_info,
                                    hyperparameters, data_packer) {
   
@@ -116,6 +119,7 @@ make_datefixer_density <- function(parameters, groups, delay_info,
   
   density
 }
+
 
 #' @importFrom stats dbeta dexp
 make_prior <- function(parameters, hyperparameters, domain) {
@@ -144,24 +148,26 @@ make_prior <- function(parameters, hyperparameters, domain) {
     ))
 }
 
+
 datefixer_log_likelihood <- function(pars, groups, delay_info, data_packer) {
-  augmented_data <- data_packer$unpack(attr(pars, "data"))
-  augmented_data$error_indicators <- 
-    apply(augmented_data$error_indicators, c(1, 2), as.logical)
+  augmented_data <- unpack_augmented_data(attr(pars, "data"), data_packer)
   
-  ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
+  ll_errors <- datefixer_log_likelihood_errors(pars[["prob_error"]],
                                                augmented_data$error_indicators)
+  
+  delays <- seq_along(delay_info$from)
   
   ll_delays <- 
     datefixer_log_likelihood_delays(augmented_data$estimated_dates,
                                     groups,
-                                    pars[grepl("^mean_delay", names(pars))],
-                                    pars[grepl("^cv_delay", names(pars))],
+                                    pars[paste0("mean_delay", delays)],
+                                    pars[paste0("cv_delay", delays)],
                                     delay_info)
   
   ll_errors + ll_delays
                                                
 }
+
 
 datefixer_log_likelihood_errors <- function(prob_error, error_indicators) {
   n_errors <- sum(error_indicators, na.rm = TRUE)
@@ -190,6 +196,7 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
   
 }
 
+
 #' @importFrom stats dgamma
 datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
                                              cv_delays, delay_from, delay_to,
@@ -211,7 +218,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   ll[, is_delay_in_group] <- 
     vapply(seq_along(shape),
            function(i) {
-             dgamma(delay_values[, i], shape[i], rate = rate[i], log = TRUE)
+             dgamma(delay_values[, i], shape[[i]], rate = rate[[i]], log = TRUE)
            },
            numeric(group_size))
   
@@ -253,6 +260,7 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
   } 
   augmented_data_update  
 }
+
 
 observed_dates_to_int <- function(data) {
   dates <- setdiff(names(data), c("id", "group"))
