@@ -152,14 +152,16 @@ make_prior <- function(parameters, hyperparameters, domain) {
 datefixer_log_likelihood <- function(pars, groups, delay_info, data_packer) {
   augmented_data <- unpack_augmented_data(attr(pars, "data"), data_packer)
   
-  ll_errors <- datefixer_log_likelihood_errors(pars["prob_error"], 
+  ll_errors <- datefixer_log_likelihood_errors(pars[["prob_error"]],
                                                augmented_data$error_indicators)
+  
+  delays <- seq_along(delay_info$from)
   
   ll_delays <- 
     datefixer_log_likelihood_delays(augmented_data$estimated_dates,
                                     groups,
-                                    pars[grepl("^mean_delay", names(pars))],
-                                    pars[grepl("^cv_delay", names(pars))],
+                                    pars[paste0("mean_delay", delays)],
+                                    pars[paste0("cv_delay", delays)],
                                     delay_info)
   
   ll_errors + ll_delays
@@ -216,7 +218,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   ll[, is_delay_in_group] <- 
     vapply(seq_along(shape),
            function(i) {
-             dgamma(delay_values[, i], shape[i], rate = rate[i], log = TRUE)
+             dgamma(delay_values[, i], shape[[i]], rate = rate[[i]], log = TRUE)
            },
            numeric(group_size))
   
