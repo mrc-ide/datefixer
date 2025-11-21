@@ -54,7 +54,9 @@
 <span>  lower_quantile <span class="op">=</span> <span class="fl">0.01</span>,</span>
 <span>  upper_quantile <span class="op">=</span> <span class="fl">0.99</span>,</span>
 <span>  mean_sdlog <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  cv_sdlog <span class="op">=</span> <span class="fl">1</span></span>
+<span>  cv_sdlog <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  prob_update_estimated_dates <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  prob_update_error_indicators <span class="op">=</span> <span class="fl">0.1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,6 +105,17 @@ every<code>thinning_factor</code>'th step is retained</p></dd>
 <dt id="arg-cv-sdlog">cv_sdlog<a class="anchor" aria-label="anchor" href="#arg-cv-sdlog"></a></dt>
 <dd><p>The sdlog proposal parameter for the delay coefficients of
 variation</p></dd>
+
+
+<dt id="arg-prob-update-estimated-dates">prob_update_estimated_dates<a class="anchor" aria-label="anchor" href="#arg-prob-update-estimated-dates"></a></dt>
+<dd><p>The probability of proposing an update
+to each estimated date at each iteration in the MCMC</p></dd>
+
+
+<dt id="arg-prob-update-error-indicators">prob_update_error_indicators<a class="anchor" aria-label="anchor" href="#arg-prob-update-error-indicators"></a></dt>
+<dd><p>The probability of proposing an update
+to each error indicator (with the corresponding estimated date updated
+accordingly) at each iteration in the MCMC</p></dd>
 
 </dl></div>
     <div id="value">
