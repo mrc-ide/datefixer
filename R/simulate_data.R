@@ -81,7 +81,7 @@ simulate_data <- function(n_per_group,
   true_data <- data.frame(id = 1:total_indiv,
                           group = rep(1:n_groups, times = n_to_sim))
 
-  for (name in all_event_names) true_data[[name]] <- as.Date(NA)
+  for (name in all_event_names) true_data[[name]] <- NA
 
   # Simulate the true dates for each individual
   for (i in seq_len(total_indiv)) {
@@ -100,9 +100,7 @@ simulate_data <- function(n_per_group,
     # Simulate root events ("from" events)
     root_events <- names(which(degree(event_graph, mode = "in") == 0))
     for (root in root_events) {
-      true_data[i, root] <- as.Date(
-        sample(range_dates[1]:range_dates[2], 1), origin = "1970-01-01"
-      )
+      true_data[i, root] <- sample(range_dates[1]:range_dates[2], 1) + runif(1)
     }
 
     for (to_event in setdiff(event_order, root_events)) {
@@ -115,8 +113,8 @@ simulate_data <- function(n_per_group,
 
       # Sample the delay
       shape <- (1 / params$delay_cv)^2
-      scale <- params$delay_mean / shape
-      delay <- pmax(0, round(rgamma(1, shape = shape, scale = scale)))
+      rate <- shape / params$delay_mean
+      delay <- rgamma(1, shape = shape, rate = rate)
       true_data[i, to_event] <- true_data[i, from_event] + delay
     }
   }
@@ -183,6 +181,12 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
     error_indicators[date_cols], function(x) rep(as.logical(NA), length(x))
   )
 
+  # Convert true_data continuous dates to observed dates
+  for (col in date_cols) {
+    observed_data[[col]] <- as.Date(floor(true_data[[col]]),
+                                    origin = "1970-01-01")
+  }
+  
   probs <- c(
     error_params$prop_missing_data,
     (1 - error_params$prop_missing_data) * error_params$prob_error,
@@ -208,14 +212,14 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
 
     if (length(error_idx) > 0) {
       n_errors <- length(error_idx)
-      estimated_dates_for_errors <- as.integer(true_data[error_idx, col])
+      true_dates_for_errors <- floor(true_data[error_idx, col])
 
       proposed_dates <- sample(
         range_dates[1]:range_dates[2], n_errors, replace = TRUE
         )
 
       # Find any resampled dates for errors which match the true date
-      invalid_error <- which(proposed_dates == estimated_dates_for_errors)
+      invalid_error <- which(proposed_dates == true_dates_for_errors)
 
       # Fix these invalid errors
       while(length(invalid_error) > 0) {
@@ -223,7 +227,7 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
                              length(invalid_error), replace = TRUE)
         proposed_dates[invalid_error] <- new_sample
         invalid_error <- which(proposed_dates[invalid_error] ==
-                                 estimated_dates_for_errors[invalid_error])
+                                 true_dates_for_errors[invalid_error])
       }
 
       observed_data[error_idx, col] <- as.Date(proposed_dates,
