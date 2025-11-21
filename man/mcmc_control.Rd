@@ -14,7 +14,9 @@ mcmc_control(
   lower_quantile = 0.01,
   upper_quantile = 0.99,
   mean_sdlog = 1,
-  cv_sdlog = 1
+  cv_sdlog = 1,
+  prob_update_estimated_dates = 0.1,
+  prob_update_error_indicators = 0.1
 )
 }
 \arguments{
@@ -40,6 +42,13 @@ every\code{thinning_factor}'th step is retained}
 
 \item{cv_sdlog}{The sdlog proposal parameter for the delay coefficients of
 variation}
+
+\item{prob_update_estimated_dates}{The probability of proposing an update
+to each estimated date at each iteration in the MCMC}
+
+\item{prob_update_error_indicators}{The probability of proposing an update
+to each error indicator (with the corresponding estimated date updated
+accordingly) at each iteration in the MCMC}
 }
 \value{
 List of control parameters

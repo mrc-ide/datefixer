@@ -67,6 +67,13 @@ mcmc_run <- function(model,
 ##' 
 ##' @param cv_sdlog The sdlog proposal parameter for the delay coefficients of
 ##'   variation
+##'   
+##' @param prob_update_estimated_dates The probability of proposing an update
+##'   to each estimated date at each iteration in the MCMC
+##'
+##' @param prob_update_error_indicators The probability of proposing an update
+##'   to each error indicator (with the corresponding estimated date updated
+##'   accordingly) at each iteration in the MCMC
 ##'
 ##' @return List of control parameters
 ##'
@@ -80,7 +87,9 @@ mcmc_control <- function(n_steps = 1000,
                          lower_quantile = 0.01,
                          upper_quantile = 0.99,
                          mean_sdlog = 1,
-                         cv_sdlog = 1) {
+                         cv_sdlog = 1,
+                         prob_update_estimated_dates = 0.1,
+                         prob_update_error_indicators = 0.1) {
   
   list(n_steps = n_steps,
        burnin = burnin,
@@ -91,5 +100,7 @@ mcmc_control <- function(n_steps = 1000,
        lower_quantile = lower_quantile,
        upper_quantile = upper_quantile, 
        mean_sdlog = mean_sdlog,
-       cv_sdlog = cv_sdlog)
+       cv_sdlog = cv_sdlog,
+       prob_update_estimated_dates = prob_update_estimated_dates,
+       prob_update_error_indicators = prob_update_error_indicators)
 }

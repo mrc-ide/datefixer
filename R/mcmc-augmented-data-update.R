@@ -66,6 +66,11 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
     return(augmented_data)
   }
   
+  update <- monty::monty_random_real(rng) < control$prob_update_estimated_dates
+  if (!update) {
+    return(augmented_data)
+  }
+  
   augmented_data_new <- 
     propose_estimated_date(i, augmented_data, observed_dates, delay_info,
                            is_date_in_delay, rng)
@@ -117,6 +122,11 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   
   if (!any(is_date_in_delay)) {
     ## date is not associated with any delays for that group, so no update
+    return(augmented_data)
+  }
+  
+  update <- monty::monty_random_real(rng) < control$prob_update_error_indicators
+  if (!update) {
     return(augmented_data)
   }
   
