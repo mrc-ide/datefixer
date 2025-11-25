@@ -306,3 +306,12 @@ calc_proposal_density <- function(i, augmented_data, observed_dates,
   
   d
 }
+
+
+# Check for individuals with at least one error and non-error (exclude missing)
+has_mixed_errors <- function(error_indicators) {
+  length(unique(na.omit(error_indicators))) == 2
+}
+
+
+
