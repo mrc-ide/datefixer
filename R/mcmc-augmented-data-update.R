@@ -31,8 +31,10 @@ update_augmented_data1 <- function(augmented_data, observed_dates, group,
                                             group, prob_error, delay_info,
                                             control, rng)
   
-  #TODO: Consider having moveE/swapE here?
-  
+  augmented_data <- swap_error_indicators(augmented_data, observed_dates,
+                                          group, prob_error, delay_info,
+                                          control, rng)
+
   augmented_data
 }
 
