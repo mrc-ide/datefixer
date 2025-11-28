@@ -155,12 +155,23 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
   ## Which delays involve this date
   which_delays <- which(is_date_in_delay)
   
+  ## Filter to only delays where the other date is available (needed for swap)
+  valid_delays <- c()
+  for (d in which_delays) {
+    is_from <- (i == delay_info$from[d])
+    other_date_idx <- if (is_from) delay_info$to[d] else delay_info$from[d]
+    
+    if (!is.na(estimated_dates[other_date_idx])) {
+      valid_delays <- c(valid_delays, d)
+    }
+  }
+  
   ## If it is involved in several delays, randomly select one
-  if (length(which_delays) > 1) {
-    delay_idx <- ceiling(length(which_delays) * monty::monty_random_real(rng))
-    selected_delay <- which_delays[delay_idx]
+  if (length(valid_delays) > 1) {
+    delay_idx <- ceiling(length(valid_delays) * monty::monty_random_real(rng))
+    selected_delay <- valid_delays[delay_idx]
   } else {
-    selected_delay <- which_delays
+    selected_delay <- valid_delays
   }
 
   ## Is date i the 'from' or 'to' in this delay
