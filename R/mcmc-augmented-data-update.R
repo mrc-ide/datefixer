@@ -329,4 +329,66 @@ swap_to_non_errors <- function(augmented_data, observed_dates,
 }
 
 
+# Swap non-error dates to erroneous dates and resample missing dates
+resample_dates <- function(augmented_data, new_errors, missing, event_order,
+                           delay_info, delays_in_group, rng) {
+
+  indices_to_resample <- c(new_errors, missing)
+  resampling_order <- event_order[event_order %in% indices_to_resample]
+  augmented_data$estimated_dates[indices_to_resample] <- NA
+  
+  # Which dates do we have?
+  available_dates <- which(!is.na(augmented_data$estimated_dates))
+  remaining_to_resample <- indices_to_resample
+  
+  while (length(remaining_to_resample) > 0) {
+    
+    # Find all dates connected to available dates
+    connected_dates <- c()
+    for (date_idx in available_dates) {
+      
+      involving_delays <-
+        which(delays_in_group &
+                (date_idx == delay_info$from | date_idx == delay_info$to))
+      
+      # What are the "other" dates in those delay pairs
+      for (d in involving_delays) {
+        
+        is_from <- (date_idx == delay_info$from[d])
+        other_idx <- if (is_from) delay_info$to[d] else delay_info$from[d]
+        
+        if (other_idx %in% remaining_to_resample) {
+          connected_dates <- c(connected_dates, other_idx)
+        }
+        
+      }
+    }
+    
+    connected_dates <- unique(connected_dates)
+    
+    # Earliest connected event according to resampling_order
+    earliest_idx <- which(resampling_order %in% connected_dates)[1]
+    date_to_sample <- resampling_order[earliest_idx]
+    
+    is_date_in_delay <- delays_in_group & 
+      (date_to_sample == delay_info$from | date_to_sample == delay_info$to)
+    
+    augmented_data$estimated_dates[date_to_sample] <-
+      sample_from_delay(date_to_sample, augmented_data$estimated_dates, 
+                        delay_info, is_date_in_delay, rng)
+    
+    # After sampling update available dates and remove from remaining
+    available_dates <- c(available_dates, date_to_sample)
+    remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
+    resampling_order <- resampling_order[-earliest_idx]
+  }
+  
+  augmented_data$error_indicators[new_errors] <-
+    !augmented_data$error_indicators[new_errors]
+
+  augmented_data
+}
+
+
+
 
