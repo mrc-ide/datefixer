@@ -313,5 +313,20 @@ has_mixed_errors <- function(error_indicators) {
   length(unique(na.omit(error_indicators))) == 2
 }
 
+# Swap erroneous dates to non-error dates (i.e. observed dates)
+swap_to_non_errors <- function(augmented_data, observed_dates,
+                               new_non_errors, rng) {
+  
+  for (i in new_non_errors) {
+  augmented_data$estimated_dates[i] <-
+    observed_dates[i] + monty::monty_random_real(rng)
+  }
+  
+  augmented_data$error_indicators[new_non_errors] <-
+    !augmented_data$error_indicators[new_non_errors]
+  
+  augmented_data
+}
+
 
 
