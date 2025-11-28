@@ -307,10 +307,55 @@ calc_proposal_density <- function(i, augmented_data, observed_dates,
   d
 }
 
+## Swap -----------------------------------------------------------------------
 
 # Check for individuals with at least one error and non-error (exclude missing)
 has_mixed_errors <- function(error_indicators) {
   length(unique(na.omit(error_indicators))) == 2
+}
+
+# Swap error indicators for one eligible individual
+swap_error_indicators <- function(augmented_data, observed_dates,
+                                  group, prob_error, delay_info,
+                                  control, rng) {
+
+  if (!has_mixed_errors(augmented_data$error_indicators)) return(augmented_data)
+  
+  update <- monty::monty_random_real(rng) < control$prob_error_swap
+  if (!update) return(augmented_data)
+  
+  # identify relevant delays and event dates for a group
+  delays_in_group <- delay_info$is_delay_in_group[, group]
+  dates_from <- delay_info$from[delays_in_group]
+  dates_to <- delay_info$to[delays_in_group]
+  
+  relevant_dates <- unique(c(dates_from, dates_to))
+  delay_df <- data.frame(from = dates_from, to = dates_to)
+  
+  event_graph <- igraph::graph_from_data_frame(delay_df,
+                                               directed = TRUE,
+                                               vertices = relevant_dates)
+
+  event_order <- as.numeric(names(igraph::topo_sort(event_graph)))
+
+  # idx for dates to change
+  new_non_errors <- which(augmented_data$error_indicators == TRUE)
+  new_errors <- which(augmented_data$error_indicators == FALSE)
+  missing <- relevant_dates[is.na(augmented_data$error_indicators[relevant_dates])]
+  
+  # errors to non-errors (i.e. observed dates correct)
+  augmented_data_new <- swap_to_non_errors(augmented_data, observed_dates,
+                                           new_non_errors, rng)
+  
+  # systematically sample new errors and missing dates based on new non-errors
+  augmented_data_new <- resample_dates(augmented_data_new, new_errors, missing,
+                                       event_order, delay_info, delays_in_group,
+                                       rng)
+
+  # TODO: accept/reject
+
+  augmented_data_new
+
 }
 
 # Swap erroneous dates to non-error dates (i.e. observed dates)
