@@ -350,77 +350,54 @@ swap_error_indicators <- function(augmented_data, observed_dates,
 
   event_order <- as.numeric(names(igraph::topo_sort(event_graph)))
 
-  # idx for dates to change
-  new_non_errors <- which(augmented_data$error_indicators == TRUE)
-  new_errors <- which(augmented_data$error_indicators == FALSE)
-  missing <- relevant_dates[is.na(augmented_data$error_indicators[relevant_dates])]
   
-  # errors to non-errors (i.e. observed dates correct)
-  augmented_data_new <- swap_to_non_errors(augmented_data, observed_dates,
-                                           new_non_errors, rng)
+  augmented_data_new <- augmented_data
+  augmented_data_new$error_indicators <- !augmented_data_new$error_indicators
+  augmented_data_new$estimated_dates[] <- NA
   
   # systematically sample new errors and missing dates based on new non-errors
-  augmented_data_new <- resample_dates(augmented_data_new, new_errors, missing,
+  augmented_data_new <- resample_dates(augmented_data_new, observed_dates,
                                        event_order, delay_info, delays_in_group,
                                        rng)
 
   # TODO: accept/reject
 
-  augmented_data_new
-
-}
-
-# Swap erroneous dates to non-error dates (i.e. observed dates)
-swap_to_non_errors <- function(augmented_data, observed_dates,
-                               new_non_errors, rng) {
-  
-  for (i in new_non_errors) {
-  augmented_data$estimated_dates[i] <-
-    observed_dates[i] + monty::monty_random_real(rng)
-  }
-  
-  augmented_data$error_indicators[new_non_errors] <-
-    !augmented_data$error_indicators[new_non_errors]
-  
   augmented_data
-}
 
+}
 
 # Swap non-error dates to erroneous dates and resample missing dates
-resample_dates <- function(augmented_data, new_errors, missing, event_order,
+resample_dates <- function(augmented_data, observed_dates, event_order,
                            delay_info, delays_in_group, rng) {
+  
+  ## whether or not we need to resample each date
+  to_resample <- is.na(augmented_data$estimated_dates) & 
+    seq_along(observed_dates) %in% sort(event_order)
+  
+  ## resample non-errors first
+  non_errors_to_resample <- 
+    which(augmented_data$error_indicators == FALSE & to_resample)
 
-  indices_to_resample <- c(new_errors, missing)
-  resampling_order <- event_order[event_order %in% indices_to_resample]
-  augmented_data$estimated_dates[indices_to_resample] <- NA
+  for (i in non_errors_to_resample) {
+    augmented_data$estimated_dates[i] <-
+      observed_dates[i] + monty::monty_random_real(rng)
+  }
+  
+  ## remaining to resample: errors (TRUE) or missing (NA)
+  error_or_missing <- 
+    augmented_data$error_indicators | is.na(augmented_data$error_indicators)
+  remaining_to_resample <- 
+    which(error_or_missing & to_resample)
+  resampling_order <- event_order[event_order %in% remaining_to_resample]
   
   # Which dates do we have?
   available_dates <- which(!is.na(augmented_data$estimated_dates))
-  remaining_to_resample <- indices_to_resample
   
   while (length(remaining_to_resample) > 0) {
     
     # Find all dates connected to available dates
-    connected_dates <- c()
-    for (date_idx in available_dates) {
-      
-      involving_delays <-
-        which(delays_in_group &
-                (date_idx == delay_info$from | date_idx == delay_info$to))
-      
-      # What are the "other" dates in those delay pairs
-      for (d in involving_delays) {
-        
-        is_from <- (date_idx == delay_info$from[d])
-        other_idx <- if (is_from) delay_info$to[d] else delay_info$from[d]
-        
-        if (other_idx %in% remaining_to_resample) {
-          connected_dates <- c(connected_dates, other_idx)
-        }
-        
-      }
-    }
-    
+    connected_dates <- c(delay_info$to[delay_info$from %in% available_dates],
+                         delay_info$from[delay_info$to %in% available_dates])
     connected_dates <- unique(connected_dates)
     
     # Earliest connected event according to resampling_order
@@ -438,11 +415,9 @@ resample_dates <- function(augmented_data, new_errors, missing, event_order,
     available_dates <- c(available_dates, date_to_sample)
     remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
     resampling_order <- resampling_order[-earliest_idx]
+    
   }
   
-  augmented_data$error_indicators[new_errors] <-
-    !augmented_data$error_indicators[new_errors]
-
   augmented_data
 }
 
