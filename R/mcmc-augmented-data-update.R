@@ -156,17 +156,14 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
   
   ## Which delays involve this date
   which_delays <- which(is_date_in_delay)
+  other_date_idx <- ifelse(delay_info$from[which_delays] != i,
+                           delay_info$from[which_delays], 
+                           delay_info$to[which_delays])
   
   ## Filter to only delays where the other date is available (needed for swap)
-  valid_delays <- c()
-  for (d in which_delays) {
-    is_from <- (i == delay_info$from[d])
-    other_date_idx <- if (is_from) delay_info$to[d] else delay_info$from[d]
-    
-    if (!is.na(estimated_dates[other_date_idx])) {
-      valid_delays <- c(valid_delays, d)
-    }
-  }
+  valid_delays <- which_delays[!is.na(estimated_dates[other_date_idx])]
+  other_date_idx <- other_date_idx[!is.na(estimated_dates[other_date_idx])]
+  
   
   ## If it is involved in several delays, randomly select one
   if (length(valid_delays) > 1) {
@@ -176,19 +173,17 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
     selected_delay <- valid_delays
   }
 
+  ## Find the other date in this date pair
+  other_date <- estimated_dates[other_date_idx[selected_delay]]
+  
   ## Is date i the 'from' or 'to' in this delay
   is_from <- (i == delay_info$from[selected_delay])
   
-  ## Find the other date in this date pair
   if (is_from) {
-    other_date_idx <- delay_info$to[selected_delay]
-    other_date <- estimated_dates[other_date_idx]
     ## proposed date = other_date - delay
     ## so delay = other_date - proposed_date
     sign <- -1
   } else {
-    other_date_idx <- delay_info$from[selected_delay]
-    other_date <- estimated_dates[other_date_idx]
     ## proposed date = other_date + delay  
     ## so delay = proposed_date - other_date
     sign <- 1
@@ -332,10 +327,14 @@ swap_error_indicators <- function(augmented_data, observed_dates,
                                   group, prob_error, delay_info,
                                   control, rng) {
 
-  if (!has_mixed_errors(augmented_data$error_indicators)) return(augmented_data)
+  if (!has_mixed_errors(augmented_data$error_indicators)) {
+    return(augmented_data)
+  }
   
   update <- monty::monty_random_real(rng) < control$prob_error_swap
-  if (!update) return(augmented_data)
+  if (!update) {
+    return(augmented_data)
+  } 
   
   # identify relevant delays and event dates for a group
   delays_in_group <- delay_info$is_delay_in_group[, group]
