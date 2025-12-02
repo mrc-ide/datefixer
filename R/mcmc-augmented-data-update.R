@@ -166,15 +166,12 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
   
   
   ## If it is involved in several delays, randomly select one
-  if (length(valid_delays) > 1) {
-    delay_idx <- ceiling(length(valid_delays) * monty::monty_random_real(rng))
-    selected_delay <- valid_delays[delay_idx]
-  } else {
-    selected_delay <- valid_delays
-  }
-
+  delay_idx <- if (length(valid_delays) == 1) 1 else 
+    ceiling(length(valid_delays) * monty::monty_random_real(rng))
+  selected_delay <- valid_delays[delay_idx]
+  
   ## Find the other date in this date pair
-  other_date <- estimated_dates[other_date_idx[selected_delay]]
+  other_date <- estimated_dates[other_date_idx[delay_idx]]
   
   ## Is date i the 'from' or 'to' in this delay
   is_from <- (i == delay_info$from[selected_delay])
@@ -386,8 +383,7 @@ resample_dates <- function(augmented_data, observed_dates, event_order,
   ## remaining to resample: errors (TRUE) or missing (NA)
   error_or_missing <- 
     augmented_data$error_indicators | is.na(augmented_data$error_indicators)
-  remaining_to_resample <- 
-    which(error_or_missing & to_resample)
+  remaining_to_resample <- which(error_or_missing & to_resample)
   resampling_order <- event_order[event_order %in% remaining_to_resample]
   
   # Which dates do we have?
@@ -396,8 +392,9 @@ resample_dates <- function(augmented_data, observed_dates, event_order,
   while (length(remaining_to_resample) > 0) {
     
     # Find all dates connected to available dates
-    connected_dates <- c(delay_info$to[delay_info$from %in% available_dates],
-                         delay_info$from[delay_info$to %in% available_dates])
+    connected_dates <- 
+      c(delay_info$to[delay_info$from %in% available_dates & delays_in_group],
+        delay_info$from[delay_info$to %in% available_dates & delays_in_group])
     connected_dates <- unique(connected_dates)
     
     # Earliest connected event according to resampling_order
