@@ -122,11 +122,10 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   is_date_in_delay <- is_delay_in_group &
     (i == delay_info$from | i == delay_info$to)
   
-  
   if (!any(is_date_in_delay)) {
     ## date is not associated with any delays for that group, so no update
     return(augmented_data)
-  } 
+  }
   
   update <- monty::monty_random_real(rng) < control$prob_update_error_indicators
   if (!update) {
