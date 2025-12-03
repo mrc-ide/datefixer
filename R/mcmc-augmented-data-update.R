@@ -336,12 +336,14 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
   d
 }
 
+
 ## Swap -----------------------------------------------------------------------
 
 # Check for individuals with at least one error and non-error (exclude missing)
 has_mixed_errors <- function(error_indicators) {
   length(unique(na.omit(error_indicators))) == 2
 }
+
 
 # Swap error indicators for one eligible individual
 swap_error_indicators <- function(augmented_data, observed_dates,
@@ -391,6 +393,7 @@ swap_error_indicators <- function(augmented_data, observed_dates,
   augmented_data
 
 }
+
 
 calc_resampling_order <- function(to_resample, error_indicators,
                                   is_date_in_delay) {
