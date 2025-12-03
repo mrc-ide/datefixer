@@ -371,53 +371,57 @@ resample_dates <- function(augmented_data, observed_dates, event_order,
   to_resample <- is.na(augmented_data$estimated_dates) & 
     seq_along(observed_dates) %in% sort(event_order)
   
-  ## resample non-errors first
-  non_errors_to_resample <- 
-    which(augmented_data$error_indicators == FALSE & to_resample)
-
-  for (i in non_errors_to_resample) {
-    augmented_data$estimated_dates[i] <-
-      observed_dates[i] + monty::monty_random_real(rng)
-  }
+  resampling_order <- 
+    calc_resampling_order(to_resample, augmented_data$error_indicators,
+                          event_order, delay_info, delays_in_group)
   
-  ## remaining to resample: errors (TRUE) or missing (NA)
-  error_or_missing <- 
-    augmented_data$error_indicators | is.na(augmented_data$error_indicators)
-  remaining_to_resample <- which(error_or_missing & to_resample)
-  resampling_order <- event_order[event_order %in% remaining_to_resample]
-  
-  # Which dates do we have?
-  available_dates <- which(!is.na(augmented_data$estimated_dates))
-  
-  while (length(remaining_to_resample) > 0) {
-    
-    # Find all dates connected to available dates
-    connected_dates <- 
-      c(delay_info$to[delay_info$from %in% available_dates & delays_in_group],
-        delay_info$from[delay_info$to %in% available_dates & delays_in_group])
-    connected_dates <- unique(connected_dates)
-    
-    # Earliest connected event according to resampling_order
-    earliest_idx <- which(resampling_order %in% connected_dates)[1]
-    date_to_sample <- resampling_order[earliest_idx]
-    
-    is_date_in_delay <- delays_in_group & 
-      (date_to_sample == delay_info$from | date_to_sample == delay_info$to)
-    
-    augmented_data$estimated_dates[date_to_sample] <-
-      sample_from_delay(date_to_sample, augmented_data$estimated_dates, 
-                        delay_info, is_date_in_delay, rng)
-    
-    # After sampling update available dates and remove from remaining
-    available_dates <- c(available_dates, date_to_sample)
-    remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
-    resampling_order <- resampling_order[-earliest_idx]
-    
+  for (i in resampling_order) {
+    if (isFALSE(augmented_data$error_indicators[i])) {
+      augmented_data$estimated_dates[i] <-
+        observed_dates[i] + monty::monty_random_real(rng)
+    } else {
+      is_date_in_delay <- delays_in_group & 
+        (i == delay_info$from | i == delay_info$to)
+      augmented_data$estimated_dates[i] <-
+        sample_from_delay(i, augmented_data$estimated_dates, 
+                          delay_info, is_date_in_delay, rng)
+    }
   }
   
   augmented_data
 }
 
 
-
-
+calc_resampling_order <- function(to_resample, error_indicators, event_order,
+                                  delay_info, delays_in_group) {
+  
+  ## resample non-errors first
+  resampling_order <- which(error_indicators == FALSE & to_resample)
+  
+  ## remaining to resample: errors (TRUE) or missing (NA)
+  error_or_missing <- error_indicators | is.na(error_indicators)
+  remaining_to_resample <- which(error_or_missing & to_resample)
+  remaining_to_resample <- event_order[event_order %in% remaining_to_resample]
+  
+  while (length(remaining_to_resample) > 0) {
+    
+    # Find all dates connected to available dates
+    connected_dates <- 
+      c(delay_info$to[delay_info$from %in% resampling_order & delays_in_group],
+        delay_info$from[delay_info$to %in% resampling_order & delays_in_group])
+    connected_dates <- unique(connected_dates)
+    
+    # Earliest connected event according to resampling_order
+    earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
+    date_to_sample <- remaining_to_resample[earliest_idx]
+    
+    is_date_in_delay <- delays_in_group & 
+      (date_to_sample == delay_info$from | date_to_sample == delay_info$to)
+    
+    # Update resampling order and remove from remaining
+    resampling_order <- c(resampling_order, date_to_sample)
+    remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
+  }
+  
+  resampling_order
+}
