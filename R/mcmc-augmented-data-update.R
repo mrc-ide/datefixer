@@ -59,11 +59,11 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
   
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  ## TRUE/FALSE is date i for the given group involved in each relevant delay
-  is_date_in_delay <- delay_info$is_date_in_delay[i, , group]
+  ## TRUE/FALSE is each date in each delay for the group
+  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
 
-  if (!any(is_date_in_delay)) {
-    ## date is not associated with any delays for that group, so no update
+  if (!any(is_date_in_delay[i, ])) {
+    ## date i is not associated with any delays for that group, so no update
     return(augmented_data)
   }
   
@@ -117,10 +117,10 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  ## TRUE/FALSE is date i for the given group involved in each relevant delay
-  is_date_in_delay <- delay_info$is_date_in_delay[i, , group]
+  ## TRUE/FALSE is each date in each delay for the group
+  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
   
-  if (!any(is_date_in_delay)) {
+  if (!any(is_date_in_delay[i, ])) {
     ## date is not associated with any delays for that group, so no update
     return(augmented_data)
   }
@@ -217,7 +217,7 @@ propose_estimated_date <- function(i, augmented_data, observed_dates,
     ## error or missing - propose new value using delays
     proposed_date <- 
       sample_from_delay(i, augmented_data$estimated_dates, delay_info,
-                        is_date_in_delay, rng)
+                        is_date_in_delay[i, ], rng)
   }
   
   augmented_data$estimated_dates[i] <- proposed_date
@@ -235,10 +235,10 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   ## if any error indicator is TRUE, and corresponding proposed estimated date
   ## is on observed date we will automatically reject
   reject <- !is.na(augmented_data_new$error_indicators[updated]) &
-    isTRUE(augmented_data_new$error_indicators[updated]) &
+    augmented_data_new$error_indicators[updated] == TRUE &
     (floor(augmented_data_new$estimated_dates[updated]) == 
        observed_dates[updated])
-  if (reject) {
+  if (any(reject)) {
     return(-Inf)
   }
   
@@ -276,46 +276,63 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   }
   
   prop_current <- calc_proposal_density(
-    updated, augmented_data, observed_dates, delay_info, is_date_in_delay)
+    updated, augmented_data, delay_info, is_date_in_delay)
   prop_new <- calc_proposal_density(
-    updated, augmented_data_new, observed_dates, delay_info, is_date_in_delay)
+    updated, augmented_data_new, delay_info, is_date_in_delay)
   ratio_prop <- prop_current - prop_new
   
   ratio_post + ratio_prop
 }
 
 
-calc_proposal_density <- function(updated, augmented_data, observed_dates,
+calc_proposal_density <- function(updated, augmented_data,
                                   delay_info, is_date_in_delay) {
+  
+  resampling_order <- 
+    calc_resampling_order(updated, augmented_data$error_indicators,
+                          delay_info, is_date_in_delay)
+  
+  dates <- which(apply(is_date_in_delay, 1, any))
   
   d <- 0
   
-  for (i in updated) {
+  for (j in seq_along(updated)) {
+    
+    i <- resampling_order[j]
     
     ## if non-error (FALSE) - proposal is uniform over one day so log-density 
     ## is 0, hence only need to calculate for error (TRUE) or missing (NA)
     
     if (!isFALSE(augmented_data$error_indicators[i])) {
+      ## which dates were available for sampling
+      available_dates <- 
+        setdiff(dates, resampling_order[j:length(resampling_order)])
+      is_delay_available <- 
+        apply(is_date_in_delay[available_dates, , drop = FALSE], 2, any)
+      ## which delays could be sampled from
+      can_sample_from_delay <- is_date_in_delay[i, ] & 
+        is_delay_available
+      
       ## error or missing - proposal is based on delay(s)
-      shape <- 1 / (delay_info$cv[is_date_in_delay]^2)
-      rate <- shape / delay_info$mean[is_date_in_delay]
-      delay_from <- delay_info$from[is_date_in_delay]
-      delay_to <- delay_info$to[is_date_in_delay]
+      shape <- 1 / (delay_info$cv[can_sample_from_delay]^2)
+      rate <- shape / delay_info$mean[can_sample_from_delay]
+      delay_from <- delay_info$from[can_sample_from_delay]
+      delay_to <- delay_info$to[can_sample_from_delay]
       delay_values <- augmented_data$estimated_dates[delay_to] - 
         augmented_data$estimated_dates[delay_from]
-      if (sum(is_date_in_delay) == 1) {
+      
+      if (sum(can_sample_from_delay) == 1) {
         ## single delay involving date i
         d <- dgamma(delay_values, shape, rate, log = TRUE)
       } else {
         ## multiple delays involving date i, so delay selected at random
         d <- log(sum(dgamma(delay_values, shape, rate))) - 
-          log(sum(is_date_in_delay))
+          log(sum(can_sample_from_delay))
       }
+      
     }
     
   }
-  
-  
   
   d
 }
@@ -342,9 +359,9 @@ swap_error_indicators <- function(augmented_data, observed_dates,
   } 
   
   # identify relevant delays and event dates for a group
-  delays_in_group <- delay_info$is_delay_in_group[, group]
-  dates_from <- delay_info$from[delays_in_group]
-  dates_to <- delay_info$to[delays_in_group]
+  is_delay_in_group <- delay_info$is_delay_in_group[, group]
+  dates_from <- delay_info$from[is_delay_in_group]
+  dates_to <- delay_info$to[is_delay_in_group]
   
   relevant_dates <- unique(c(dates_from, dates_to))
   delay_df <- data.frame(from = dates_from, to = dates_to)
@@ -359,15 +376,23 @@ swap_error_indicators <- function(augmented_data, observed_dates,
   augmented_data_new$error_indicators <- !augmented_data_new$error_indicators
   augmented_data_new$estimated_dates[] <- NA
   
+  ## TRUE/FALSE is date i for the given group involved in each relevant delay
+  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
+  
   # systematically sample new errors and missing dates based on new non-errors
   augmented_data_new <- resample_dates(augmented_data_new, observed_dates,
-                                       event_order, delay_info, delays_in_group,
-                                       rng)
+                                       event_order, delay_info,
+                                       is_date_in_delay, rng)
 
-  # accept_prob <-
-  #   calc_accept_prob(event_order, augmented_data_new, augmented_data,
-  #                    observed_dates, prob_error, delay_info, is_delay_in_group,
-  #                    is_date_in_delay)
+  accept_prob <-
+    calc_accept_prob(event_order, augmented_data_new, augmented_data,
+                     observed_dates, prob_error, delay_info, is_delay_in_group,
+                     is_date_in_delay)
+  
+  accept <- log(monty::monty_random_real(rng)) < accept_prob
+  if (accept) {
+    augmented_data <- augmented_data_new
+  }
 
   augmented_data
 
@@ -375,22 +400,20 @@ swap_error_indicators <- function(augmented_data, observed_dates,
 
 # Swap non-error dates to erroneous dates and resample missing dates
 resample_dates <- function(augmented_data, observed_dates, event_order,
-                           delay_info, delays_in_group, rng) {
+                           delay_info, is_date_in_delay, rng) {
   
   resampling_order <- 
     calc_resampling_order(event_order, augmented_data$error_indicators,
-                          delay_info, delays_in_group)
+                          delay_info, is_date_in_delay)
   
   for (i in resampling_order) {
     if (isFALSE(augmented_data$error_indicators[i])) {
       augmented_data$estimated_dates[i] <-
         observed_dates[i] + monty::monty_random_real(rng)
     } else {
-      is_date_in_delay <- delays_in_group & 
-        (i == delay_info$from | i == delay_info$to)
       augmented_data$estimated_dates[i] <-
         sample_from_delay(i, augmented_data$estimated_dates, 
-                          delay_info, is_date_in_delay, rng)
+                          delay_info, is_date_in_delay[i, ], rng)
     }
   }
   
@@ -399,7 +422,11 @@ resample_dates <- function(augmented_data, observed_dates, event_order,
 
 
 calc_resampling_order <- function(to_resample, error_indicators,
-                                  delay_info, delays_in_group) {
+                                  delay_info, is_date_in_delay) {
+  
+  if (length(to_resample) == 1) {
+    return(to_resample)
+  }
   
   ## resample non-errors first
   non_error <- !error_indicators & !is.na(error_indicators)
@@ -410,17 +437,16 @@ calc_resampling_order <- function(to_resample, error_indicators,
   while (length(remaining_to_resample) > 0) {
     
     # Find all dates connected to available dates
-    connected_dates <- 
-      c(delay_info$to[delay_info$from %in% resampling_order & delays_in_group],
-        delay_info$from[delay_info$to %in% resampling_order & delays_in_group])
-    connected_dates <- unique(connected_dates)
+    can_sample_from_delay <- 
+      apply(is_date_in_delay[resampling_order, , drop = FALSE], 2, any)
+    is_connected <- apply(
+      is_date_in_delay[remaining_to_resample, can_sample_from_delay,
+                       drop = FALSE], 1, any)
+    connected_dates <- remaining_to_resample[is_connected]
     
     # Earliest connected event according to resampling_order
     earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
     date_to_sample <- remaining_to_resample[earliest_idx]
-    
-    is_date_in_delay <- delays_in_group & 
-      (date_to_sample == delay_info$from | date_to_sample == delay_info$to)
     
     # Update resampling order and remove from remaining
     resampling_order <- c(resampling_order, date_to_sample)
