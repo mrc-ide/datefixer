@@ -60,8 +60,7 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
   ## TRUE/FALSE is date i for the given group involved in each relevant delay
-  is_date_in_delay <- is_delay_in_group &
-    (i == delay_info$from | i == delay_info$to)
+  is_date_in_delay <- delay_info$is_date_in_delay[i, , group]
 
   if (!any(is_date_in_delay)) {
     ## date is not associated with any delays for that group, so no update
@@ -119,8 +118,7 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   ## TRUE/FALSE is each delay relevant to the group
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
   ## TRUE/FALSE is date i for the given group involved in each relevant delay
-  is_date_in_delay <- is_delay_in_group &
-    (i == delay_info$from | i == delay_info$to)
+  is_date_in_delay <- delay_info$is_date_in_delay[i, , group]
   
   if (!any(is_date_in_delay)) {
     ## date is not associated with any delays for that group, so no update
