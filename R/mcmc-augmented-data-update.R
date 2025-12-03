@@ -57,12 +57,7 @@ update_estimated_dates <- function(augmented_data, observed_dates, group,
 update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
                                     prob_error, delay_info, control, rng) {
   
-  ## TRUE/FALSE is each delay relevant to the group
-  is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  ## TRUE/FALSE is each date in each delay for the group
-  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
-
-  if (!any(is_date_in_delay[i, ])) {
+    if (!any(delay_info$is_date_in_delay[i, , group])) {
     ## date i is not associated with any delays for that group, so no update
     return(augmented_data)
   }
@@ -73,13 +68,12 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
   }
   
   augmented_data_new <- 
-    propose_estimated_dates(i, augmented_data, observed_dates, delay_info,
-                            is_date_in_delay, rng)
+    propose_estimated_dates(i, augmented_data, observed_dates, group,
+                            delay_info, rng)
   
   accept_prob <-
     calc_accept_prob(i, augmented_data_new, augmented_data, observed_dates,
-                     prob_error, delay_info, is_delay_in_group,
-                     is_date_in_delay)
+                     group, prob_error, delay_info)
 
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
@@ -115,12 +109,7 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
     return(augmented_data)
   }
   
-  ## TRUE/FALSE is each delay relevant to the group
-  is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  ## TRUE/FALSE is each date in each delay for the group
-  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
-  
-  if (!any(is_date_in_delay[i, ])) {
+  if (!any(delay_info$is_date_in_delay[i, , group])) {
     ## date is not associated with any delays for that group, so no update
     return(augmented_data)
   }
@@ -131,13 +120,12 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   }
   
   augmented_data_new <- 
-    propose_estimated_dates(i, augmented_data, observed_dates, delay_info,
-                            is_date_in_delay, rng, TRUE)
+    propose_estimated_dates(i, augmented_data, observed_dates, group,
+                            delay_info, rng, TRUE)
   
   accept_prob <-
     calc_accept_prob(i, augmented_data_new, augmented_data, observed_dates,
-                     prob_error, delay_info, is_delay_in_group,
-                     is_date_in_delay)
+                     group, prob_error, delay_info)
 
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
@@ -149,8 +137,10 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
 
 
 # Sample new date using randomly selected delay
-sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
+sample_from_delay <- function(i, estimated_dates, group, delay_info,
                               rng) {
+  
+  is_date_in_delay <- delay_info$is_date_in_delay[i, , group]
   
   ## Which delays involve this date
   which_delays <- which(is_date_in_delay)
@@ -204,7 +194,7 @@ sample_from_delay <- function(i, estimated_dates, delay_info, is_date_in_delay,
 
 # propose new estimated dates for date indices in to_update
 propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
-                                    delay_info, is_date_in_delay, rng,
+                                    group, delay_info, rng, 
                                     update_errors = FALSE) {
   
   if (update_errors) {
@@ -216,7 +206,7 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
   
   resampling_order <- 
     calc_resampling_order(to_update, augmented_data$error_indicators,
-                          is_date_in_delay)
+                          delay_info$is_date_in_delay[, , group])
   
   for (i in resampling_order) {
     if (isFALSE(augmented_data$error_indicators[i])) {
@@ -224,8 +214,8 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
         observed_dates[i] + monty::monty_random_real(rng)
     } else {
       augmented_data$estimated_dates[i] <-
-        sample_from_delay(i, augmented_data$estimated_dates, 
-                          delay_info, is_date_in_delay[i, ], rng)
+        sample_from_delay(i, augmented_data$estimated_dates, group,
+                          delay_info, rng)
     }
   }
   
@@ -236,8 +226,9 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
 ## calculate the (log) acceptance probability for updating augmented_data to
 ## augmented_data_new where updated is the indices of the updated date(s)
 calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
-                             observed_dates, prob_error, delay_info, 
-                             is_delay_in_group, is_date_in_delay) {
+                             observed_dates, group, prob_error, delay_info) {
+  
+  is_delay_in_group <- delay_info$is_delay_in_group[, group]
 
   ## if any error indicator is TRUE, and corresponding proposed estimated date
   ## is on observed date we will automatically reject
@@ -282,18 +273,19 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
     return(-Inf)
   }
   
-  prop_current <- calc_proposal_density(
-    updated, augmented_data, delay_info, is_date_in_delay)
-  prop_new <- calc_proposal_density(
-    updated, augmented_data_new, delay_info, is_date_in_delay)
+  prop_current <- 
+    calc_proposal_density(updated, augmented_data, group, delay_info)
+  prop_new <- 
+    calc_proposal_density(updated, augmented_data_new, group, delay_info)
   ratio_prop <- prop_current - prop_new
   
   ratio_post + ratio_prop
 }
 
 
-calc_proposal_density <- function(updated, augmented_data,
-                                  delay_info, is_date_in_delay) {
+calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
+  
+  is_date_in_delay <- delay_info$is_date_in_delay[, , group]
   
   resampling_order <- 
     calc_resampling_order(updated, augmented_data$error_indicators,
@@ -384,13 +376,12 @@ swap_error_indicators <- function(augmented_data, observed_dates,
   
   # systematically sample new errors and missing dates based on new non-errors
   augmented_data_new <- 
-    propose_estimated_dates(event_order, augmented_data, observed_dates,
-                            delay_info, is_date_in_delay, rng, TRUE)
+    propose_estimated_dates(event_order, augmented_data, observed_dates, group,
+                            delay_info, rng, TRUE)
 
   accept_prob <-
     calc_accept_prob(event_order, augmented_data_new, augmented_data,
-                     observed_dates, prob_error, delay_info, is_delay_in_group,
-                     is_date_in_delay)
+                     observed_dates, group, prob_error, delay_info)
   
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
