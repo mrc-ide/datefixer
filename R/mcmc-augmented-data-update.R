@@ -347,7 +347,6 @@ swap_error_indicators <- function(augmented_data, observed_dates,
 
   event_order <- as.numeric(names(igraph::topo_sort(event_graph)))
 
-  
   augmented_data_new <- augmented_data
   augmented_data_new$error_indicators <- !augmented_data_new$error_indicators
   augmented_data_new$estimated_dates[] <- NA
@@ -357,7 +356,10 @@ swap_error_indicators <- function(augmented_data, observed_dates,
                                        event_order, delay_info, delays_in_group,
                                        rng)
 
-  # TODO: accept/reject
+  # accept_prob <-
+  #   calc_accept_prob(event_order, augmented_data_new, augmented_data,
+  #                    observed_dates, prob_error, delay_info, is_delay_in_group,
+  #                    is_date_in_delay)
 
   augmented_data
 
@@ -367,13 +369,9 @@ swap_error_indicators <- function(augmented_data, observed_dates,
 resample_dates <- function(augmented_data, observed_dates, event_order,
                            delay_info, delays_in_group, rng) {
   
-  ## whether or not we need to resample each date
-  to_resample <- is.na(augmented_data$estimated_dates) & 
-    seq_along(observed_dates) %in% sort(event_order)
-  
   resampling_order <- 
-    calc_resampling_order(to_resample, augmented_data$error_indicators,
-                          event_order, delay_info, delays_in_group)
+    calc_resampling_order(event_order, augmented_data$error_indicators,
+                          delay_info, delays_in_group)
   
   for (i in resampling_order) {
     if (isFALSE(augmented_data$error_indicators[i])) {
@@ -392,16 +390,14 @@ resample_dates <- function(augmented_data, observed_dates, event_order,
 }
 
 
-calc_resampling_order <- function(to_resample, error_indicators, event_order,
+calc_resampling_order <- function(to_resample, error_indicators,
                                   delay_info, delays_in_group) {
   
   ## resample non-errors first
-  resampling_order <- which(error_indicators == FALSE & to_resample)
+  non_error <- !error_indicators & !is.na(error_indicators)
+  resampling_order <- to_resample[non_error[to_resample]]
   
-  ## remaining to resample: errors (TRUE) or missing (NA)
-  error_or_missing <- error_indicators | is.na(error_indicators)
-  remaining_to_resample <- which(error_or_missing & to_resample)
-  remaining_to_resample <- event_order[event_order %in% remaining_to_resample]
+  remaining_to_resample <- setdiff(to_resample, resampling_order)
   
   while (length(remaining_to_resample) > 0) {
     
