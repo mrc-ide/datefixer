@@ -285,29 +285,37 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
 }
 
 
-calc_proposal_density <- function(i, augmented_data, observed_dates,
+calc_proposal_density <- function(updated, augmented_data, observed_dates,
                                   delay_info, is_date_in_delay) {
   
-  if (isFALSE(augmented_data$error_indicators[i])) {
-    ## non-error - proposal is uniform over one day so log-density is 0
-    d <- 0
-  } else {
-    ## error or missing - proposal is based on delay(s)
-    shape <- 1 / (delay_info$cv[is_date_in_delay]^2)
-    rate <- shape / delay_info$mean[is_date_in_delay]
-    delay_from <- delay_info$from[is_date_in_delay]
-    delay_to <- delay_info$to[is_date_in_delay]
-    delay_values <- augmented_data$estimated_dates[delay_to] - 
-      augmented_data$estimated_dates[delay_from]
-    if (sum(is_date_in_delay) == 1) {
-      ## single delay involving date i
-      d <- dgamma(delay_values, shape, rate, log = TRUE)
-    } else {
-      ## multiple delays involving date i, so delay selected at random
-      d <- log(sum(dgamma(delay_values, shape, rate))) - 
-        log(sum(is_date_in_delay))
+  d <- 0
+  
+  for (i in updated) {
+    
+    ## if non-error (FALSE) - proposal is uniform over one day so log-density 
+    ## is 0, hence only need to calculate for error (TRUE) or missing (NA)
+    
+    if (!isFALSE(augmented_data$error_indicators[i])) {
+      ## error or missing - proposal is based on delay(s)
+      shape <- 1 / (delay_info$cv[is_date_in_delay]^2)
+      rate <- shape / delay_info$mean[is_date_in_delay]
+      delay_from <- delay_info$from[is_date_in_delay]
+      delay_to <- delay_info$to[is_date_in_delay]
+      delay_values <- augmented_data$estimated_dates[delay_to] - 
+        augmented_data$estimated_dates[delay_from]
+      if (sum(is_date_in_delay) == 1) {
+        ## single delay involving date i
+        d <- dgamma(delay_values, shape, rate, log = TRUE)
+      } else {
+        ## multiple delays involving date i, so delay selected at random
+        d <- log(sum(dgamma(delay_values, shape, rate))) - 
+          log(sum(is_date_in_delay))
+      }
     }
+    
   }
+  
+  
   
   d
 }
