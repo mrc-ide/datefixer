@@ -229,15 +229,17 @@ propose_estimated_date <- function(i, augmented_data, observed_dates,
 
 
 ## calculate the (log) acceptance probability for updating augmented_data to
-## augmented_data_new where i is the updated date index
-calc_accept_prob <- function(i, augmented_data_new, augmented_data,
+## augmented_data_new where updated is the indices of the updated date(s)
+calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
                              observed_dates, prob_error, delay_info, 
                              is_delay_in_group, is_date_in_delay) {
 
-  ## if error indicator is TRUE, and proposed estimated date is on observed date
-  ## we will automatically reject
-  reject <- isTRUE(augmented_data_new$error_indicators[i]) & 
-    floor(augmented_data_new$estimated_dates[i]) == observed_dates[i]
+  ## if any error indicator is TRUE, and corresponding proposed estimated date
+  ## is on observed date we will automatically reject
+  reject <- !is.na(augmented_data_new$error_indicators[updated]) &
+    isTRUE(augmented_data_new$error_indicators[updated]) &
+    (floor(augmented_data_new$estimated_dates[updated]) == 
+       observed_dates[updated])
   if (reject) {
     return(-Inf)
   }
@@ -276,9 +278,9 @@ calc_accept_prob <- function(i, augmented_data_new, augmented_data,
   }
   
   prop_current <- calc_proposal_density(
-    i, augmented_data, observed_dates, delay_info, is_date_in_delay)
+    updated, augmented_data, observed_dates, delay_info, is_date_in_delay)
   prop_new <- calc_proposal_density(
-    i, augmented_data_new, observed_dates, delay_info, is_date_in_delay)
+    updated, augmented_data_new, observed_dates, delay_info, is_date_in_delay)
   ratio_prop <- prop_current - prop_new
   
   ratio_post + ratio_prop
