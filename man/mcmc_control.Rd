@@ -16,7 +16,8 @@ mcmc_control(
   mean_sdlog = 1,
   cv_sdlog = 1,
   prob_update_estimated_dates = 0.1,
-  prob_update_error_indicators = 0.1
+  prob_update_error_indicators = 0.1,
+  prob_error_swap = 1
 )
 }
 \arguments{
@@ -49,6 +50,10 @@ to each estimated date at each iteration in the MCMC}
 \item{prob_update_error_indicators}{The probability of proposing an update
 to each error indicator (with the corresponding estimated date updated
 accordingly) at each iteration in the MCMC}
+
+\item{prob_error_swap}{The probability of proposing to swap all errors to
+non-errors and vice versa (excluding missing dates) for individuals with at
+least one error and non-error at each iteration in the MCMC}
 }
 \value{
 List of control parameters

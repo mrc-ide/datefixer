@@ -96,14 +96,27 @@ validate_data_and_delays <- function(data, delay_map) {
   
   g <- sort(unique(data$group))
   
-  ## this is a logical array - is delay i (row) in group j (col)
+  ## logical array - is delay i (row) in group j (col)
   is_delay_in_group <- t(vapply(seq_len(nrow(delay_map)),
                                 function(i) g %in% unlist(delay_map$group[i]),
                                 logical(length(g))))
+  
+  d <- seq_along(dates)
+  
+  ## logical array - is date i in delay j for group k 
+  is_date_in_delay <- vapply(seq_len(nrow(delay_map)),
+                             function (i) {
+                               x <- d %in% c(delay_from[i], delay_to[i])
+                               y <- is_delay_in_group[i, ]
+                               outer(x, y)
+                             }, array(0, c(length(d), length(g))))
+  is_date_in_delay <- 
+    apply(aperm(is_date_in_delay, c(1, 3, 2)), c(1, 2, 3), as.logical)
     
   list(from = delay_from,
        to = delay_to,
-       is_delay_in_group = is_delay_in_group)
+       is_delay_in_group = is_delay_in_group,
+       is_date_in_delay = is_date_in_delay)
 }
 
 
