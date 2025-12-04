@@ -56,7 +56,8 @@
 <span>  mean_sdlog <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  cv_sdlog <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  prob_update_estimated_dates <span class="op">=</span> <span class="fl">0.1</span>,</span>
-<span>  prob_update_error_indicators <span class="op">=</span> <span class="fl">0.1</span></span>
+<span>  prob_update_error_indicators <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  prob_error_swap <span class="op">=</span> <span class="fl">1</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -116,6 +117,12 @@ to each estimated date at each iteration in the MCMC</p></dd>
 <dd><p>The probability of proposing an update
 to each error indicator (with the corresponding estimated date updated
 accordingly) at each iteration in the MCMC</p></dd>
+
+
+<dt id="arg-prob-error-swap">prob_error_swap<a class="anchor" aria-label="anchor" href="#arg-prob-error-swap"></a></dt>
+<dd><p>The probability of proposing to swap all errors to
+non-errors and vice versa (excluding missing dates) for individuals with at
+least one error and non-error at each iteration in the MCMC</p></dd>
 
 </dl></div>
     <div id="value">
