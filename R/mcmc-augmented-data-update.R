@@ -1,5 +1,5 @@
 update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
-                                  delay_info, control, rng) {
+                                  delay_info, date_range, control, rng) {
   
   n_delays <- length(delay_info$from)
   delay_info$mean <- unname(pars[paste0("mean_delay", seq_len(n_delays))])
@@ -10,7 +10,7 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
     augmented_data_i <- lapply(augmented_data, function(x) x[i, ])
     augmented_data_i <- 
       update_augmented_data1(augmented_data_i, observed_dates[i, ], groups[i],
-                             prob_error, delay_info, control, rng)
+                             prob_error, delay_info, date_range, control, rng)
     augmented_data$estimated_dates[i, ] <- augmented_data_i$estimated_dates
     augmented_data$error_indicators[i, ] <- augmented_data_i$error_indicators
   }
@@ -21,19 +21,20 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
 
 # Updating the augmented data for one individual
 update_augmented_data1 <- function(augmented_data, observed_dates, group,
-                                   prob_error, delay_info, control, rng) {
+                                   prob_error, delay_info, date_range,
+                                   control, rng) {
 
   augmented_data <- update_estimated_dates(augmented_data, observed_dates,
                                            group, prob_error, delay_info,
-                                           control, rng)
+                                           date_range, control, rng)
   
   augmented_data <- update_error_indicators(augmented_data, observed_dates,
                                             group, prob_error, delay_info,
-                                            control, rng)
+                                            date_range, control, rng)
   
   augmented_data <- swap_error_indicators(augmented_data, observed_dates,
                                           group, prob_error, delay_info,
-                                          control, rng)
+                                          date_range, control, rng)
 
   augmented_data
 }
@@ -41,12 +42,13 @@ update_augmented_data1 <- function(augmented_data, observed_dates, group,
 
 # Updating all the relevant estimated dates for one individual
 update_estimated_dates <- function(augmented_data, observed_dates, group,
-                                   prob_error, delay_info, control, rng) {
+                                   prob_error, delay_info, date_range,
+                                   control, rng) {
 
   for (i in seq_along(observed_dates)) {
     augmented_data <- 
       update_estimated_dates1(i, augmented_data, observed_dates, group,
-                              prob_error, delay_info, control, rng)
+                              prob_error, delay_info, date_range, control, rng)
   }
   
   augmented_data
@@ -55,7 +57,8 @@ update_estimated_dates <- function(augmented_data, observed_dates, group,
 
 # Updating one of the estimated dates for an individual
 update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
-                                    prob_error, delay_info, control, rng) {
+                                    prob_error, delay_info, date_range, 
+                                    control, rng) {
   
     if (!any(delay_info$is_date_in_delay[i, , group])) {
     ## date i is not associated with any delays for that group, so no update
@@ -73,7 +76,7 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
   
   accept_prob <-
     calc_accept_prob(i, augmented_data_new, augmented_data, observed_dates,
-                     group, prob_error, delay_info)
+                     group, prob_error, delay_info, date_range)
 
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
@@ -87,12 +90,13 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
 # Updating all the relevant error indicators (and corresponding estimated dates)
 # for one individual
 update_error_indicators <- function(augmented_data, observed_dates, group,
-                                    prob_error, delay_info, control, rng) {
+                                    prob_error, delay_info, date_range,
+                                    control, rng) {
   
   for (i in seq_along(observed_dates)) {
     augmented_data <- 
       update_error_indicators1(i, augmented_data, observed_dates, group,
-                               prob_error, delay_info, control, rng)
+                               prob_error, delay_info, date_range, control, rng)
   }
   
   augmented_data
@@ -102,7 +106,8 @@ update_error_indicators <- function(augmented_data, observed_dates, group,
 # Updating one of the error indicators (and corresponding estimated date) for an
 # individual
 update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
-                                     prob_error, delay_info, control, rng) {
+                                     prob_error, delay_info, date_range,
+                                     control, rng) {
   
   if (is.na(augmented_data$error_indicators[1])) {
     ## missing date, no error indicator update
@@ -125,7 +130,7 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
   
   accept_prob <-
     calc_accept_prob(i, augmented_data_new, augmented_data, observed_dates,
-                     group, prob_error, delay_info)
+                     group, prob_error, delay_info, date_range)
 
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {
@@ -226,17 +231,23 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
 ## calculate the (log) acceptance probability for updating augmented_data to
 ## augmented_data_new where updated is the indices of the updated date(s)
 calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
-                             observed_dates, group, prob_error, delay_info) {
+                             observed_dates, group, prob_error, delay_info,
+                             date_range) {
   
   is_delay_in_group <- delay_info$is_delay_in_group[, group]
 
-  ## if any error indicator is TRUE, and corresponding proposed estimated date
-  ## is on observed date we will automatically reject
-  reject <- !is.na(augmented_data_new$error_indicators[updated]) &
+  ## are error indicators TRUE with estimated date matching observed date
+  incompatible_error_and_date <-
+    !is.na(augmented_data_new$error_indicators[updated]) &
     augmented_data_new$error_indicators[updated] == TRUE &
     (floor(augmented_data_new$estimated_dates[updated]) == 
        observed_dates[updated])
-  if (any(reject)) {
+  ## are estimated dates outside the date range 
+  date_outside_range <- 
+    augmented_data_new$estimated_dates[updated] < date_range[1] |
+    augmented_data_new$estimated_dates[updated] >= date_range[2]
+  reject <- any(incompatible_error_and_date) || any(date_outside_range)
+  if (reject) {
     return(-Inf)
   }
   
@@ -259,10 +270,10 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   
   ## current errors log likelihood
   ll_errors_current <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data$error_indicators)
+    prob_error, augmented_data$error_indicators, date_range)
   ## new errors log likelihood
   ll_errors_new <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data_new$error_indicators)
+    prob_error, augmented_data_new$error_indicators, date_range)
   
   ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
   ratio_ll_errors <- ll_errors_new - ll_errors_current
@@ -346,8 +357,8 @@ has_mixed_errors <- function(error_indicators) {
 
 
 # Swap error indicators for one eligible individual
-swap_error_indicators <- function(augmented_data, observed_dates,
-                                  group, prob_error, delay_info,
+swap_error_indicators <- function(augmented_data, observed_dates, group,
+                                  prob_error, delay_info, date_range,
                                   control, rng) {
 
   if (!has_mixed_errors(augmented_data$error_indicators)) {
@@ -383,7 +394,7 @@ swap_error_indicators <- function(augmented_data, observed_dates,
 
   accept_prob <-
     calc_accept_prob(event_order, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info)
+                     observed_dates, group, prob_error, delay_info, date_range)
   
   accept <- log(monty::monty_random_real(rng)) < accept_prob
   if (accept) {

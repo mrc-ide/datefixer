@@ -20,6 +20,8 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   groups <- data$group
   observed_dates <- observed_dates_to_int(data)
   
+  date_range <- calc_date_range(observed_dates, control)
+  
   n_delays <- nrow(delay_map)
   delay_ids <- seq_len(n_delays)
   parameters <- c("prob_error",
@@ -30,12 +32,12 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   data_packer <- make_augmented_data_packer(observed_dates)
   
-  density <- make_datefixer_density(parameters, groups, delay_info,
+  density <- make_datefixer_density(parameters, groups, delay_info, date_range,
                                     hyperparameters, data_packer)
   
   augmented_data_update <- 
     make_augmented_data_update(observed_dates, parameters, groups, delay_info,
-                               control, density, data_packer)
+                               date_range, control, density, data_packer)
   
   likelihood <- monty::monty_model(
     list(parameters = parameters,
@@ -120,14 +122,14 @@ validate_data_and_delays <- function(data, delay_map) {
 }
 
 
-make_datefixer_density <- function(parameters, groups, delay_info,
+make_datefixer_density <- function(parameters, groups, delay_info, date_range,
                                    hyperparameters, data_packer) {
   
   density <- function(pars) {
     names(pars) <- parameters
     
     log_likelihood <- datefixer_log_likelihood(pars, groups, delay_info,
-                                               data_packer)
+                                               date_range, data_packer)
   }
   
   density
@@ -162,11 +164,13 @@ make_prior <- function(parameters, hyperparameters, domain) {
 }
 
 
-datefixer_log_likelihood <- function(pars, groups, delay_info, data_packer) {
+datefixer_log_likelihood <- function(pars, groups, delay_info, date_range,
+                                     data_packer) {
   augmented_data <- unpack_augmented_data(attr(pars, "data"), data_packer)
   
   ll_errors <- datefixer_log_likelihood_errors(pars[["prob_error"]],
-                                               augmented_data$error_indicators)
+                                               augmented_data$error_indicators,
+                                               date_range)
   
   delays <- seq_along(delay_info$from)
   
@@ -177,16 +181,22 @@ datefixer_log_likelihood <- function(pars, groups, delay_info, data_packer) {
                                     pars[paste0("cv_delay", delays)],
                                     delay_info)
   
+  
   ll_errors + ll_delays
                                                
 }
 
 
-datefixer_log_likelihood_errors <- function(prob_error, error_indicators) {
+datefixer_log_likelihood_errors <- function(prob_error, error_indicators,
+                                            date_range) {
   n_errors <- sum(error_indicators, na.rm = TRUE)
   n_non_errors <- sum(!error_indicators, na.rm = TRUE)
   
-  n_errors * log(prob_error) + n_non_errors * log(1 - prob_error)
+  ## prob_error of each error and 1 - prob_error of each non-error
+  ## for each error the date is then drawn at random from the range of dates
+  ## excluding the observed date
+  n_errors * log(prob_error) + n_non_errors * log(1 - prob_error) -
+    n_errors * log(diff(date_range) - 1)
 }
 
 
@@ -244,8 +254,8 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
 
 
 make_augmented_data_update <- function(observed_dates, parameters, groups,
-                                       delay_info, control, density_fn,
-                                       data_packer) {
+                                       delay_info, date_range, control,
+                                       density_fn, data_packer) {
   augmented_data_update <- function(pars, rng) {
     augmented_data <- attr(pars, "data")
     
@@ -253,8 +263,9 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
     
     if (is.null(augmented_data)) {
       ## augmented data does not exist, so we initialise it
-      augmented_data <- initialise_augmented_data(observed_dates, pars, groups,
-                                                  delay_info, control, rng)
+      augmented_data <- 
+        initialise_augmented_data(observed_dates, pars, groups, delay_info,
+                                  date_range, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
       
       attr(pars, "data") <- augmented_data
@@ -262,8 +273,8 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
     } else {
       augmented_data <- unpack_augmented_data(augmented_data, data_packer)
       augmented_data <- update_augmented_data(augmented_data, observed_dates,
-                                              pars, groups, delay_info, control,
-                                              rng)
+                                              pars, groups, delay_info,
+                                              date_range, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
       attr(pars, "data") <- augmented_data
       density <- density_fn(pars)
@@ -281,6 +292,23 @@ observed_dates_to_int <- function(data) {
   observed_dates <- data_frame_to_array(data[, dates])
   
   date_to_int(observed_dates)
+}
+
+
+calc_date_range <- function(observed_dates, control) {
+  ## convert earliest/latest possible dates to integer or take them from
+  ## the data if NULL
+  date_min <- 
+    if (is.null(control$earliest_possible_date)) 
+      min(observed_dates, na.rm = TRUE) else 
+        date_to_int(control$earliest_possible_date)
+  date_max <- 
+    if (is.null(control$latest_possible_date)) 
+      max(observed_dates, na.rm = TRUE) else
+      date_to_int(control$latest_possible_date)
+  
+  ## Add 1 to date_max as we allow anything over that one day interval
+  date_range <- c(date_min, date_max + 1)
 }
   
 

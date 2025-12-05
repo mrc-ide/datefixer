@@ -63,6 +63,14 @@ mcmc_run <- function(model,
 ##' 
 ##' @param upper_quantile Upper quantile used for initialisation of true dates
 ##' 
+##' @param earliest_possible_date The earliest possible date (in YYYY-MM-DD 
+##'   format). If `NULL`, then it will be given by the earliest date in the
+##'   data.
+##'   
+##' @param latest_possible_date The latest possible date (in YYYY-MM-DD 
+##'   format). If `NULL`, then it will be given by the latest date in the
+##'   data.
+##' 
 ##' @param mean_sdlog The sdlog proposal parameter for the delay means
 ##' 
 ##' @param cv_sdlog The sdlog proposal parameter for the delay coefficients of
@@ -90,6 +98,8 @@ mcmc_control <- function(n_steps = 1000,
                          n_workers = 1,
                          lower_quantile = 0.01,
                          upper_quantile = 0.99,
+                         earliest_possible_date = NULL,
+                         latest_possible_date = NULL,
                          mean_sdlog = 1,
                          cv_sdlog = 1,
                          prob_update_estimated_dates = 0.1,
@@ -103,7 +113,9 @@ mcmc_control <- function(n_steps = 1000,
        parallel = parallel,
        n_workers = n_workers,
        lower_quantile = lower_quantile,
-       upper_quantile = upper_quantile, 
+       upper_quantile = upper_quantile,
+       earliest_possible_date = earliest_possible_date,
+       latest_possible_date = latest_possible_date,
        mean_sdlog = mean_sdlog,
        cv_sdlog = cv_sdlog,
        prob_update_estimated_dates = prob_update_estimated_dates,
