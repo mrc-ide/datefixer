@@ -9,7 +9,7 @@
 #' @param delay_params A data frame containing the parameters (`delay_mean`,
 #'  `delay_cv`) for each delay. Consider combining delay_map and delay_params?
 #' @param error_params A list containing `prop_missing_data` and `prob_error`.
-#' @param range_dates A vector of two integer dates for the simulation range.
+#' @param date_range A vector of two integer dates for the simulation range.
 #' @param simul_error Boolean. If TRUE, simulates missing and erroneous data.
 #'
 #' @importFrom igraph topo_sort graph_from_data_frame degree
@@ -46,7 +46,7 @@
 #' # Define other parameters
 #' n_per_group <- rep(10, max(delay_params$group))
 #' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-#' range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
+#' date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 #'
 #' # Run simulation
 #' set.seed(1)
@@ -55,7 +55,7 @@
 #'   delay_map = delay_map,
 #'   delay_params = delay_params,
 #'   error_params = error_params,
-#'   range_dates = range_dates,
+#'   date_range = date_range,
 #'   simul_error = TRUE
 #' )
 #'
@@ -67,7 +67,7 @@ simulate_data <- function(n_per_group,
                           delay_map,
                           delay_params,
                           error_params,
-                          range_dates,
+                          date_range,
                           simul_error = FALSE) {
 
   # Simulate 20% more individuals per group than needed in case of all-NA rows
@@ -100,7 +100,7 @@ simulate_data <- function(n_per_group,
     # Simulate root events ("from" events)
     root_events <- names(which(degree(event_graph, mode = "in") == 0))
     for (root in root_events) {
-      true_data[i, root] <- sample(range_dates[1]:range_dates[2], 1) + runif(1)
+      true_data[i, root] <- sample(date_range[1]:date_range[2], 1) + runif(1)
     }
 
     for (to_event in setdiff(event_order, root_events)) {
@@ -126,7 +126,7 @@ simulate_data <- function(n_per_group,
   if (simul_error) {
     error_results <- add_observation_errors(true_data,
                                             error_params,
-                                            range_dates)
+                                            date_range)
     observed_data <- error_results$observed_data
     error_indicators <- error_results$error_indicators
 
@@ -172,7 +172,7 @@ simulate_data <- function(n_per_group,
 }
 
 ## Create error_indicators using error_params
-add_observation_errors <- function(true_data, error_params, range_dates) {
+add_observation_errors <- function(true_data, error_params, date_range) {
 
   observed_data <- true_data
   error_indicators <- true_data
@@ -215,7 +215,7 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
       true_dates_for_errors <- floor(true_data[error_idx, col])
 
       proposed_dates <- sample(
-        range_dates[1]:range_dates[2], n_errors, replace = TRUE
+        date_range[1]:date_range[2], n_errors, replace = TRUE
         )
 
       # Find any resampled dates for errors which match the true date
@@ -223,7 +223,7 @@ add_observation_errors <- function(true_data, error_params, range_dates) {
 
       # Fix these invalid errors
       while(length(invalid_error) > 0) {
-        new_sample <- sample(range_dates[1]:range_dates[2],
+        new_sample <- sample(date_range[1]:date_range[2],
                              length(invalid_error), replace = TRUE)
         proposed_dates[invalid_error] <- new_sample
         invalid_error <- which(proposed_dates[invalid_error] ==
