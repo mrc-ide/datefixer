@@ -64,12 +64,22 @@ mcmc_run <- function(model,
 ##' @param upper_quantile Upper quantile used for initialisation of true dates
 ##' 
 ##' @param earliest_possible_date The earliest possible date (in YYYY-MM-DD 
-##'   format). If `NULL`, then it will be given by the earliest date in the
-##'   data.
+##'   format). Dates will not be estimated as occurring earlier than this date.
+##'   If `NULL` (the default), then it will be determined by the 
+##'   earliest date in the data and `date_buffer`.
 ##'   
 ##' @param latest_possible_date The latest possible date (in YYYY-MM-DD 
-##'   format). If `NULL`, then it will be given by the latest date in the
-##'   data.
+##'   format). Dates will not be estimated as occurring later than this date.
+##'   If `NULL` (the default), then it will be determined by the latest
+##'   date in the data and `date_buffer`.
+##'   
+##' @param date_buffer The date buffer in terms of days to determine the
+##'   earliest and/or latest possible dates from the data. If 
+##'   `earliest_possible_date` is not specified then the earliest possible date
+##'   will be taken as `date_buffer` days before the earliest date in the data.
+##'   Similarly, if `latest_possible_date` is not specified then the latest
+##'   possible date will be taken as `date_buffer` days after the latest date in
+##'   the data.
 ##' 
 ##' @param mean_sdlog The sdlog proposal parameter for the delay means
 ##' 
@@ -100,6 +110,7 @@ mcmc_control <- function(n_steps = 1000,
                          upper_quantile = 0.99,
                          earliest_possible_date = NULL,
                          latest_possible_date = NULL,
+                         date_buffer = 30,
                          mean_sdlog = 1,
                          cv_sdlog = 1,
                          prob_update_estimated_dates = 0.1,
@@ -116,6 +127,7 @@ mcmc_control <- function(n_steps = 1000,
        upper_quantile = upper_quantile,
        earliest_possible_date = earliest_possible_date,
        latest_possible_date = latest_possible_date,
+       date_buffer = date_buffer,
        mean_sdlog = mean_sdlog,
        cv_sdlog = cv_sdlog,
        prob_update_estimated_dates = prob_update_estimated_dates,
