@@ -300,11 +300,11 @@ calc_date_range <- function(observed_dates, control) {
   ## the data if NULL
   date_min <- 
     if (is.null(control$earliest_possible_date)) 
-      min(observed_dates, na.rm = TRUE) else 
+      min(observed_dates, na.rm = TRUE) - control$date_buffer else 
         date_to_int(control$earliest_possible_date)
   date_max <- 
     if (is.null(control$latest_possible_date)) 
-      max(observed_dates, na.rm = TRUE) else
+      max(observed_dates, na.rm = TRUE) + control$date_buffer else
       date_to_int(control$latest_possible_date)
   
   ## Add 1 to date_max as we allow anything over that one day interval
