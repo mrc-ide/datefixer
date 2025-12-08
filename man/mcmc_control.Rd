@@ -13,6 +13,9 @@ mcmc_control(
   n_workers = 1,
   lower_quantile = 0.01,
   upper_quantile = 0.99,
+  earliest_possible_date = NULL,
+  latest_possible_date = NULL,
+  date_buffer = 30,
   mean_sdlog = 1,
   cv_sdlog = 1,
   prob_update_estimated_dates = 0.1,
@@ -38,6 +41,24 @@ every\code{thinning_factor}'th step is retained}
 \item{lower_quantile}{Lower quantile used for initialisation of true dates}
 
 \item{upper_quantile}{Upper quantile used for initialisation of true dates}
+
+\item{earliest_possible_date}{The earliest possible date (in YYYY-MM-DD
+format). Dates will not be estimated as occurring earlier than this date.
+If \code{NULL} (the default), then it will be determined by the
+earliest date in the data and \code{date_buffer}.}
+
+\item{latest_possible_date}{The latest possible date (in YYYY-MM-DD
+format). Dates will not be estimated as occurring later than this date.
+If \code{NULL} (the default), then it will be determined by the latest
+date in the data and \code{date_buffer}.}
+
+\item{date_buffer}{The date buffer in terms of days to determine the
+earliest and/or latest possible dates from the data. If
+\code{earliest_possible_date} is not specified then the earliest possible date
+will be taken as \code{date_buffer} days before the earliest date in the data.
+Similarly, if \code{latest_possible_date} is not specified then the latest
+possible date will be taken as \code{date_buffer} days after the latest date in
+the data.}
 
 \item{mean_sdlog}{The sdlog proposal parameter for the delay means}
 
