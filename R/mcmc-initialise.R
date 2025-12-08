@@ -129,8 +129,8 @@ initialise_row <- function(individual_data, group, group_delay_map,
   date_below_min <- individual_data[group_dates] < date_range[1]
   date_above_max <- individual_data[group_dates] >= date_range[2]
   
-  inidividual_data[date_below_min] <- date_range[1]
-  inidividual_data[date_above_max] <- date_range[2] - 1
+  individual_data[date_below_min] <- date_range[1]
+  individual_data[date_above_max] <- date_range[2] - 1
   
   ### TEMPORARY FIX
   for (i in seq_len(nrow(group_delay_map))) {
