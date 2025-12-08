@@ -126,6 +126,12 @@ initialise_row <- function(individual_data, group, group_delay_map,
     iter <- iter + 1
   }
   
+  date_below_min <- individual_data[group_dates] < date_range[1]
+  date_above_max <- individual_data[group_dates] >= date_range[2]
+  
+  inidividual_data[date_below_min] <- date_range[1]
+  inidividual_data[date_above_max] <- date_range[2] - 1
+  
   ### TEMPORARY FIX
   for (i in seq_len(nrow(group_delay_map))) {
     from_event <- as.numeric(group_delay_map$from[i])
@@ -135,14 +141,6 @@ initialise_row <- function(individual_data, group, group_delay_map,
     }
   }
   
-  date_below_min <- individual_data[group_dates] < date_range[1]
-  date_above_max <- individual_data[group_dates] >= date_range[2]
-  
-  if (any(date_below_min | date_above_max)) {
-    browser()
-  }
-  
-
   individual_data[group_dates] <- individual_data[group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
   
