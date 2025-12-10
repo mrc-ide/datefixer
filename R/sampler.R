@@ -1,3 +1,7 @@
+#' Datefixer sampler
+#' @param control Object produced by `mcmc_control()`
+#' @return A monty sampler configured for the datefixer model.
+#' @export
 datefixer_sampler <- function(control) {
   monty::monty_sampler(
     "datefixer sampler",
@@ -8,9 +12,11 @@ datefixer_sampler <- function(control) {
     properties = monty::monty_sampler_properties(allow_augmented_data = TRUE))
 }
 
+
 datefixer_sampler_initialise <- function(state_chain, control, model, rng) {
   return(NULL)
 }
+
 
 datefixer_sampler_step <- function(state_chain, state_sampler, control, 
                                    model, rng) {

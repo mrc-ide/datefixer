@@ -2,6 +2,7 @@
 
 export(datefixer_hyperparameters)
 export(datefixer_model)
+export(datefixer_sampler)
 export(mcmc_control)
 export(mcmc_run)
 export(simulate_data)
