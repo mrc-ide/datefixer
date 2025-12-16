@@ -11,7 +11,7 @@ simulate_data(
   error_params,
   date_range,
   simul_error = FALSE,
-  true_data = NA
+  true_data = NULL
 )
 }
 \arguments{
@@ -29,6 +29,10 @@ of numeric group IDs).}
 \item{date_range}{A vector of two integer dates for the simulation range.}
 
 \item{simul_error}{Boolean. If TRUE, simulates missing and erroneous data.}
+
+\item{true_data}{Optional dataframe containing the true, unobserved dates.
+If supplied, used as the ground truth for simulating observed dates and
+errors. If 'NULL', the true data is generated internally.}
 }
 \value{
 A list with three data frames: \code{true_data}, \code{observed_data}, and
