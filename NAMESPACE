@@ -3,6 +3,7 @@
 export(datefixer_hyperparameters)
 export(datefixer_model)
 export(mcmc_control)
+export(mcmc_initial)
 export(mcmc_run)
 export(simulate_data)
 import(dplyr)
