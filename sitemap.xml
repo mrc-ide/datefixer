@@ -6,9 +6,11 @@
 <url><loc>/index.html</loc></url>
 <url><loc>/reference/datefixer_hyperparameters.html</loc></url>
 <url><loc>/reference/datefixer_model.html</loc></url>
+<url><loc>/reference/datefixer_sampler.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/mcmc_control.html</loc></url>
 <url><loc>/reference/mcmc_run.html</loc></url>
 <url><loc>/reference/simulate_data.html</loc></url>
+<url><loc>/reference/simulate_true_data.html</loc></url>
 </urlset>
 

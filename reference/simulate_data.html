@@ -50,7 +50,8 @@
 <span>  <span class="va">delay_params</span>,</span>
 <span>  <span class="va">error_params</span>,</span>
 <span>  <span class="va">date_range</span>,</span>
-<span>  simul_error <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  simul_error <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  true_data <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -83,6 +84,12 @@ of numeric group IDs).</p></dd>
 
 <dt id="arg-simul-error">simul_error<a class="anchor" aria-label="anchor" href="#arg-simul-error"></a></dt>
 <dd><p>Boolean. If TRUE, simulates missing and erroneous data.</p></dd>
+
+
+<dt id="arg-true-data">true_data<a class="anchor" aria-label="anchor" href="#arg-true-data"></a></dt>
+<dd><p>Optional dataframe containing the true, unobserved dates.
+If supplied, used as the ground truth for simulating observed dates and
+errors. If 'NULL', the true data is generated internally.</p></dd>
 
 </dl></div>
     <div id="value">
@@ -139,122 +146,122 @@ of numeric group IDs).</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6   6     1 20312.34              NA 20321.76       NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 7   7     1 20319.83              NA 20330.70       NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8   8     1 20310.72              NA 20319.63       NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1 20191.73              NA 20202.82       NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 20269.41              NA 20283.36       NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 20281.33              NA 20292.05 20294.82        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2 20169.34              NA 20182.02 20180.78        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 20217.39              NA 20229.31 20230.26        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2 20222.76              NA 20230.02 20232.88        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2 20170.64              NA 20183.88 20189.65        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 20297.60              NA 20308.36 20308.11        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17 17     2 20296.13              NA 20305.52 20323.68        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 20250.75              NA 20259.97 20260.61        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2 20195.51              NA 20206.50 20205.52        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2 20187.10              NA 20200.16 20201.74        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3 20148.50        20154.15 20156.40       NA  20185.35</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 20191.39        20197.84 20202.93       NA  20229.60</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3 20282.19        20290.05 20296.96       NA  20313.17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 20247.28        20254.46 20259.98       NA  20280.04</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 20224.27        20229.92 20230.79       NA  20267.86</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 20246.95        20255.13 20257.66       NA  20291.90</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 20197.17        20203.40 20206.80       NA  20208.71</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3 20263.58        20272.43 20272.51       NA  20281.06</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3 20164.93        20171.69 20171.21       NA  20186.29</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3 20196.28        20204.29 20203.19       NA  20224.77</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 20277.05        20282.48 20283.61 20290.34        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 20263.10        20268.42 20274.01 20279.82        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 20332.18        20340.33 20341.00 20355.57        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 34 34     4 20252.50        20257.57 20263.00 20267.38        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 35 35     4 20175.81        20183.80 20187.57 20193.42        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 20173.27        20180.02 20184.66 20186.75        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 20184.28        20192.64 20197.70 20200.18        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 38 38     4 20219.84        20224.81 20229.12 20242.01        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 39 39     4 20295.33        20303.81 20304.83 20316.72        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4 20258.24        20266.30 20264.58 20274.32        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1 20258.55              NA 20268.32       NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 20191.73              NA 20202.82       NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 20268.44              NA 20276.07 20279.62        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2 20186.91              NA 20194.94 20203.03        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 20277.77              NA 20283.71 20297.87        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2 20262.48              NA 20276.00 20274.72        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2 20217.71              NA 20226.53 20227.14        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 20288.41              NA 20300.72 20304.60        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17 17     2 20195.99              NA 20206.57 20204.06        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 20220.98              NA 20232.42 20233.80        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2 20195.10              NA 20204.26 20208.84        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2 20207.45              NA 20217.09 20217.31        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3 20173.64        20182.68 20183.65       NA  20226.41</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 20186.26        20193.99 20193.27       NA  20223.30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3 20310.33        20317.03 20320.10       NA  20329.45</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 20184.45        20192.42 20193.36       NA  20215.91</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 20246.84        20255.25 20255.52       NA  20279.32</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 20196.29        20202.00 20209.55       NA  20226.66</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 20299.55        20307.20 20305.72       NA  20326.91</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3 20191.32        20199.30 20198.73       NA  20209.32</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3 20164.26        20171.94 20170.42       NA  20198.99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3 20222.95        20232.34 20230.73       NA  20250.08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 20307.35        20312.74 20316.10 20324.69        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 20263.58        20272.43 20272.51 20280.30        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 20164.93        20171.69 20171.21 20182.04        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 34 34     4 20196.28        20204.29 20203.19 20216.85        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 35 35     4 20277.05        20282.48 20283.61 20290.34        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 20263.10        20268.42 20274.01 20279.82        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 20252.50        20257.57 20263.00 20267.38        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 38 38     4 20175.81        20183.80 20187.57 20193.42        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 39 39     4 20175.44        20180.98 20192.96 20192.81        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4 20173.27        20180.02 20184.66 20186.75        NA</span>
 <span class="r-in"><span><span class="va">sim_result</span><span class="op">$</span><span class="va">observed_data</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    id group      onset hospitalisation     report      death  discharge</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   1     1 2025-05-07            &lt;NA&gt; 2025-05-21       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   2     1 2025-04-12            &lt;NA&gt; 2025-04-18       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   1     1 2025-03-15            &lt;NA&gt; 2025-05-21       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   2     1 2025-04-12            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3   3     1 2025-05-24            &lt;NA&gt; 2025-06-03       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   4     1 2025-05-13            &lt;NA&gt; 2025-05-28       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   5     1 2025-04-06            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6   6     1 2025-08-12            &lt;NA&gt; 2025-08-21       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   4     1 2025-05-13            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   5     1 2025-04-06            &lt;NA&gt; 2025-04-14       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   6     1       &lt;NA&gt;            &lt;NA&gt; 2025-08-21       &lt;NA&gt;       &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 7   7     1 2025-08-19            &lt;NA&gt; 2025-08-30       &lt;NA&gt;       &lt;NA&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8   8     1 2025-08-10            &lt;NA&gt; 2025-08-19       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1       &lt;NA&gt;            &lt;NA&gt; 2025-04-24       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 2025-06-30            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 2025-07-12            &lt;NA&gt; 2025-07-23 2025-07-25       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2       &lt;NA&gt;            &lt;NA&gt; 2025-04-04 2025-04-02       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 2025-05-09            &lt;NA&gt; 2025-05-21 2025-05-22       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2       &lt;NA&gt;            &lt;NA&gt; 2025-05-22 2025-05-24       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2 2025-04-25            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 2025-07-28            &lt;NA&gt; 2025-08-08       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17 17     2 2025-07-27            &lt;NA&gt; 2025-08-05 2025-08-23       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 2025-06-11            &lt;NA&gt; 2025-06-20 2025-07-14       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2 2025-04-17            &lt;NA&gt; 2025-04-28 2025-04-27       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2 2025-04-09            &lt;NA&gt; 2025-04-22 2025-04-23       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3 2025-03-01      2025-03-07 2025-03-09       &lt;NA&gt; 2025-04-25</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 2025-04-13      2025-04-19       &lt;NA&gt;       &lt;NA&gt; 2025-05-21</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3 2025-07-13      2025-07-21 2025-07-27       &lt;NA&gt; 2025-08-13</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 2025-06-08            &lt;NA&gt; 2025-06-20       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 2025-05-16      2025-05-21 2025-05-22       &lt;NA&gt; 2025-06-28</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 2025-06-07      2025-06-16 2025-06-18       &lt;NA&gt; 2025-07-22</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 2025-04-19      2025-08-28 2025-04-28       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3       &lt;NA&gt;      2025-07-03 2025-05-10       &lt;NA&gt; 2025-07-12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3       &lt;NA&gt;      2025-03-24 2025-03-24       &lt;NA&gt; 2025-04-08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3       &lt;NA&gt;      2025-04-26       &lt;NA&gt;       &lt;NA&gt; 2025-05-16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 2025-07-08      2025-07-13 2025-07-14 2025-07-21       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 2025-06-24      2025-07-11       &lt;NA&gt; 2025-07-10       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 2025-09-01      2025-09-09 2025-09-10 2025-09-24       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 34 34     4 2025-06-13      2025-06-18 2025-06-23 2025-06-28       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 35 35     4       &lt;NA&gt;      2025-04-05 2025-04-09 2025-04-15       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 2025-03-26      2025-04-02 2025-04-06 2025-04-08       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 2025-04-06      2025-04-14 2025-04-19       &lt;NA&gt;       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 38 38     4       &lt;NA&gt;      2025-05-16 2025-05-21 2025-06-03       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 39 39     4 2025-07-26            &lt;NA&gt; 2025-08-04 2025-08-16       &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4 2025-06-19      2025-06-27 2025-06-25 2025-07-05       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1 2025-06-19            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 2025-04-13            &lt;NA&gt; 2025-04-24       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 2025-06-29            &lt;NA&gt; 2025-07-07       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2 2025-04-08            &lt;NA&gt; 2025-04-16 2025-04-25       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 2025-07-08            &lt;NA&gt; 2025-07-14 2025-06-19       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2 2025-06-23            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2 2025-05-09            &lt;NA&gt; 2025-08-12 2025-05-19       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 2025-07-19            &lt;NA&gt; 2025-07-31 2025-08-04       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17 17     2 2025-04-17            &lt;NA&gt; 2025-04-28 2025-04-26       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 2025-05-12            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2       &lt;NA&gt;            &lt;NA&gt; 2025-04-26 2025-04-30       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2       &lt;NA&gt;            &lt;NA&gt; 2025-05-09       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3 2025-08-27      2025-04-04 2025-04-05       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 2025-04-08      2025-04-15 2025-04-15       &lt;NA&gt; 2025-05-15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3       &lt;NA&gt;      2025-08-17 2025-08-20       &lt;NA&gt; 2025-08-29</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 2025-04-06      2025-04-14 2025-04-15       &lt;NA&gt; 2025-05-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 2025-06-07            &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 2025-04-18      2025-04-23       &lt;NA&gt;       &lt;NA&gt; 2025-05-18</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 2025-07-30      2025-08-07       &lt;NA&gt;       &lt;NA&gt; 2025-08-26</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3 2025-04-13      2025-04-21 2025-04-20       &lt;NA&gt; 2025-05-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3 2025-03-17      2025-03-24       &lt;NA&gt;       &lt;NA&gt; 2025-04-20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3 2025-05-14      2025-07-28 2025-05-22       &lt;NA&gt; 2025-06-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 2025-08-07      2025-08-12 2025-08-16 2025-07-25       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 2025-06-24      2025-07-03 2025-07-03 2025-07-11       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 2025-03-17      2025-03-24       &lt;NA&gt; 2025-04-04       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 34 34     4 2025-04-18      2025-04-26 2025-04-25 2025-05-08       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 35 35     4       &lt;NA&gt;      2025-07-13 2025-07-14 2025-07-21       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 2025-06-24            &lt;NA&gt; 2025-07-05 2025-07-10       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 2025-06-13            &lt;NA&gt; 2025-06-23       &lt;NA&gt;       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 38 38     4       &lt;NA&gt;      2025-04-05 2025-04-09 2025-04-15       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 39 39     4 2025-03-28            &lt;NA&gt; 2025-04-14 2025-04-14       &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4       &lt;NA&gt;      2025-04-02 2025-04-06 2025-04-08       &lt;NA&gt;</span>
 <span class="r-in"><span><span class="va">sim_result</span><span class="op">$</span><span class="va">error_indicators</span> <span class="co"># true error indicators</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    id group onset hospitalisation report death discharge</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   1     1 FALSE              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2   2     1 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   1     1  TRUE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   2     1 FALSE              NA     NA    NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3   3     1 FALSE              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   4     1 FALSE              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   5     1 FALSE              NA     NA    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6   6     1 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   4     1 FALSE              NA     NA    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   5     1 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   6     1    NA              NA  FALSE    NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 7   7     1 FALSE              NA  FALSE    NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8   8     1 FALSE              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1    NA              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 FALSE              NA     NA    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2    NA              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2    NA              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2  TRUE              NA     NA    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9   9     1 FALSE              NA     NA    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 10     1 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11 11     2 FALSE              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12 12     2 FALSE              NA  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13 13     2 FALSE              NA  FALSE  TRUE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14 14     2 FALSE              NA     NA    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 15     2 FALSE              NA   TRUE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16 16     2 FALSE              NA  FALSE FALSE        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 17 17     2 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 FALSE              NA  FALSE  TRUE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3 FALSE           FALSE  FALSE    NA      TRUE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 FALSE           FALSE     NA    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3 FALSE           FALSE  FALSE    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 FALSE              NA  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 FALSE           FALSE  FALSE    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 FALSE           FALSE  FALSE    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 FALSE            TRUE  FALSE    NA        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3    NA           FALSE   TRUE    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3    NA           FALSE  FALSE    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3    NA           FALSE     NA    NA     FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 FALSE           FALSE  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 FALSE            TRUE     NA FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 FALSE           FALSE  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18 18     2 FALSE              NA     NA    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 19     2    NA              NA  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 20     2    NA              NA  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21 21     3  TRUE           FALSE  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22 22     3 FALSE           FALSE  FALSE    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23 23     3    NA           FALSE  FALSE    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24 24     3 FALSE           FALSE  FALSE    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25 25     3 FALSE              NA     NA    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26 26     3 FALSE           FALSE     NA    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27 27     3 FALSE           FALSE     NA    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28 28     3 FALSE           FALSE  FALSE    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29 29     3 FALSE           FALSE     NA    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30 30     3 FALSE            TRUE  FALSE    NA     FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31 31     4 FALSE           FALSE  FALSE  TRUE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32 32     4 FALSE           FALSE  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33 33     4 FALSE           FALSE     NA FALSE        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 34 34     4 FALSE           FALSE  FALSE FALSE        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 35 35     4    NA           FALSE  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 FALSE           FALSE  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 FALSE           FALSE  FALSE    NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 36 36     4 FALSE              NA  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 37 37     4 FALSE              NA  FALSE    NA        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 38 38     4    NA           FALSE  FALSE FALSE        NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 39 39     4 FALSE              NA  FALSE FALSE        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4 FALSE           FALSE  FALSE FALSE        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 40 40     4    NA           FALSE  FALSE FALSE        NA</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
