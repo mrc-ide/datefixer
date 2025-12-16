@@ -4,12 +4,7 @@
 \alias{mcmc_run}
 \title{Run MCMC}
 \usage{
-mcmc_run(
-  model,
-  sampler,
-  initial = mcmc_initial(model),
-  control = mcmc_control()
-)
+mcmc_run(model, sampler, initial = NULL, control = mcmc_control())
 }
 \arguments{
 \item{model}{Model}

@@ -3,9 +3,10 @@ test_that("Can run mcmc", {
   control <- mcmc_control(n_steps = 50, n_chains = 3)
   
   model <- toy_model(control)
+  initial <- mcmc_initial(model)
   
   sampler <- datefixer_sampler(control)
-  samples <- mcmc_run(model, sampler, control)
+  samples <- mcmc_run(model, sampler, initial, control)
   
   expect_equal(dim(samples$pars), c(length(model$parameters), 50, 3))
 })

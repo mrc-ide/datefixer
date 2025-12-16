@@ -15,10 +15,12 @@
 ##' @export
 mcmc_run <- function(model,
                      sampler,
-                     initial = mcmc_initial(model),
+                     initial = NULL,
                      control = mcmc_control()) {
   
   parameters <- model$parameters
+  
+  initial <- initial %||% mcmc_initial(model)
   
   runner <- 
     if (control$parallel) monty::monty_runner_callr(control$n_workers) else
