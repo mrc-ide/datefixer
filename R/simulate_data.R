@@ -106,7 +106,7 @@ simulate_data <- function(n_per_group,
 
 ## Simulate true data
 simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
-  set.seed(6)
+
   n_groups <- length(n_per_group)
   total_indiv <- sum(n_per_group)
   
