@@ -10,7 +10,8 @@ simulate_data(
   delay_params,
   error_params,
   date_range,
-  simul_error = FALSE
+  simul_error = FALSE,
+  true_data = NA
 )
 }
 \arguments{

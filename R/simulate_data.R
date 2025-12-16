@@ -107,7 +107,12 @@ simulate_data <- function(n_per_group,
 }
 
 
-## Simulate true data
+#' Simulate true data
+#' @description Simulate the true, unobserved dates for individuals
+#' @inheritParams simulate_data
+#' @importFrom stats rgamma
+#' @importFrom igraph graph_from_data_frame topo_sort degree
+#' @export
 simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
 
   n_groups <- length(n_per_group)
@@ -128,15 +133,15 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
       delay_map[sapply(delay_map$group, function(g) current_group %in% g), ]
     
     events_in_group <- unique(c(applicable_delays$from, applicable_delays$to))
-    event_graph <- igraph::graph_from_data_frame(
+    event_graph <- graph_from_data_frame(
       applicable_delays[, c("from", "to")],
       directed = TRUE,
       vertices = events_in_group
     )
-    event_order <- names(igraph::topo_sort(event_graph))
+    event_order <- names(topo_sort(event_graph))
     
     # Simulate root events ("from" events)
-    root_events <- names(which(igraph::degree(event_graph, mode = "in") == 0))
+    root_events <- names(which(degree(event_graph, mode = "in") == 0))
     for (root in root_events) {
       true_data[i, root] <- sample(date_range[1]:date_range[2], 1) + runif(1)
     }
@@ -152,7 +157,7 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
       # Sample the delay
       shape <- (1 / params$delay_cv)^2
       rate <- shape / params$delay_mean
-      delay <- stats::rgamma(1, shape = shape, rate = rate)
+      delay <- rgamma(1, shape = shape, rate = rate)
       true_data[i, to_event] <- true_data[i, from_event] + delay
     }
   }
