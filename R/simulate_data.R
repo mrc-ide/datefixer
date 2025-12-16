@@ -68,10 +68,13 @@ simulate_data <- function(n_per_group,
                           delay_params,
                           error_params,
                           date_range,
-                          simul_error = FALSE) {
+                          simul_error = FALSE,
+                          true_data = NA) {
   
+  if (is.na(true_data)) {
   true_data <- simulate_true_data(n_per_group, delay_map,
                                   delay_params, date_range)
+  }
   
   # Simulate observation errors
   observed_data <- NULL
