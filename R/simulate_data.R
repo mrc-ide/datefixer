@@ -136,17 +136,24 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
       delay_map[sapply(delay_map$group, function(g) current_group %in% g), ]
     
     events_in_group <- unique(c(applicable_delays$from, applicable_delays$to))
-    event_graph <- graph_from_data_frame(
-      applicable_delays[, c("from", "to")],
-      directed = TRUE,
-      vertices = events_in_group
-    )
+    event_graph <- graph_from_data_frame(applicable_delays[, c("from", "to")],
+                                         directed = TRUE,
+                                         vertices = events_in_group)
     event_order <- names(topo_sort(event_graph))
-    
-    # Simulate root events ("from" events)
     root_events <- names(which(degree(event_graph, mode = "in") == 0))
+    
+    valid_dates <- FALSE
+    attempts <- 0
+    max_attempts <- 100
+    
+    while (!valid_dates && attempts < max_attempts) {
+      attempts <- attempts + 1
+    
+      proposed_dates <- unlist(true_data[i,])
+
+    # Simulate root events ("from" events)
     for (root in root_events) {
-      true_data[i, root] <- sample(date_range[1]:date_range[2], 1) + runif(1)
+      proposed_dates[root] <- sample(date_range[1]:date_range[2], 1) + runif(1)
     }
     
     for (to_event in setdiff(event_order, root_events)) {
@@ -161,8 +168,24 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
       shape <- (1 / params$delay_cv)^2
       rate <- shape / params$delay_mean
       delay <- rgamma(1, shape = shape, rate = rate)
-      true_data[i, to_event] <- true_data[i, from_event] + delay
+      proposed_dates[to_event] <- proposed_dates[from_event] + delay
     }
+    
+    # Check all simulated true dates for an individual are within date_range
+    dates_to_check <- proposed_dates[events_in_group]
+    valid_dates <- all(!is.na(dates_to_check) &
+                         dates_to_check >= date_range[1] &
+                         dates_to_check <= date_range[2])
+    
+    }
+    
+    if (attempts >= max_attempts) {
+      stop("Could not generate valid true dates after 100 attempts.
+           Consider widening date_range or reducing delays.")
+    }
+    
+    true_data[i, events_in_group] <- proposed_dates[events_in_group]
+    
   }
   return(true_data)
 }
