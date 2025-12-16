@@ -131,9 +131,9 @@ mcmc_initial <- function(model,
                          initial_cv_delay = 0.2,
                          initial_prob_error = 1) {
   initial <- numeric(length(model$parameters))
-  initial[parameters == "prob_error"] <- 0.1
-  initial[grepl("mean_delay", parameters)] <- initial_mean_delay
-  initial[grepl("cv_delay", parameters)] <- initial_cv_delay
+  initial[model$parameters == "prob_error"] <- 0.1
+  initial[grepl("mean_delay", model$parameters)] <- initial_mean_delay
+  initial[grepl("cv_delay", model$parameters)] <- initial_cv_delay
   
   initial
 }
