@@ -7,19 +7,20 @@
 ##' @param sampler Sampler
 ##'
 ##' @param control List of control parameters
+##' 
+##' @param initial Initial values
 ##'
 ##' @return Output
 ##'
 ##' @export
 mcmc_run <- function(model,
                      sampler,
+                     initial = NULL,
                      control = mcmc_control()) {
   
   parameters <- model$parameters
-  initial <- numeric(length(parameters))
-  initial[parameters == "prob_error"] <- 0.1
-  initial[grepl("mean_delay", parameters)] <- 7
-  initial[grepl("cv_delay", parameters)] <- 0.2
+  
+  initial <- initial %||% mcmc_initial(model)
   
   runner <- 
     if (control$parallel) monty::monty_runner_callr(control$n_workers) else
@@ -133,4 +134,32 @@ mcmc_control <- function(n_steps = 1000,
        prob_update_estimated_dates = prob_update_estimated_dates,
        prob_update_error_indicators = prob_update_error_indicators,
        prob_error_swap = prob_error_swap)
+}
+
+##' Create initial parameter values
+##'
+##' @title Create initial parameter values
+##'
+##' @param model Model
+##' 
+##' @param initial_mean_delay The initial value for the mean delays
+##' 
+##' @param initial_cv_delay The initial value for the coefficient of variation
+##'   of delays
+##'   
+##' @param initial_prob_error The initial value for the probability of error  
+##' 
+##' @return Vector of initial parameter values
+##'
+##' @export
+mcmc_initial <- function(model,
+                         initial_mean_delay = 7,
+                         initial_cv_delay = 0.2,
+                         initial_prob_error = 1) {
+  initial <- numeric(length(model$parameters))
+  initial[model$parameters == "prob_error"] <- 0.1
+  initial[grepl("mean_delay", model$parameters)] <- initial_mean_delay
+  initial[grepl("cv_delay", model$parameters)] <- initial_cv_delay
+  
+  initial
 }
