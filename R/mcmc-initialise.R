@@ -40,7 +40,7 @@ calculate_delay_boundaries <- function(delay_params, quantile_range) {
 #' @importFrom stats median
 #' @importFrom utils head tail
 initialise_row <- function(individual_data, group, group_delay_map,
-                           group_delay_boundaries, rng) {
+                           group_delay_boundaries, date_range, rng) {
   
   group_dates <- unique(c(group_delay_map$from, group_delay_map$to))
 
@@ -126,6 +126,12 @@ initialise_row <- function(individual_data, group, group_delay_map,
     iter <- iter + 1
   }
   
+  date_below_min <- individual_data[group_dates] < date_range[1]
+  date_above_max <- individual_data[group_dates] >= date_range[2]
+  
+  individual_data[date_below_min] <- date_range[1]
+  individual_data[date_above_max] <- date_range[2] - 1
+  
   ### TEMPORARY FIX
   for (i in seq_len(nrow(group_delay_map))) {
     from_event <- as.numeric(group_delay_map$from[i])
@@ -135,7 +141,6 @@ initialise_row <- function(individual_data, group, group_delay_map,
     }
   }
   
-
   individual_data[group_dates] <- individual_data[group_dates] + 
     monty::monty_random_n_real(length(group_dates), rng)
   
@@ -146,7 +151,7 @@ initialise_row <- function(individual_data, group, group_delay_map,
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
 initialise_augmented_data <- function(observed_dates, pars, groups, delay_info,
-                                      control, rng) {
+                                      date_range, control, rng) {
   
   delay_map <- data.frame(from = delay_info$from,
                           to = delay_info$to)
@@ -162,11 +167,10 @@ initialise_augmented_data <- function(observed_dates, pars, groups, delay_info,
 
   initialise1 <- function(i) {
     is_delay_in_group <- delay_info$is_delay_in_group[, groups[i]]
-    initialise_row(observed_dates[i, ],
-                   groups[i],
+    initialise_row(observed_dates[i, ], groups[i],
                    delay_map[is_delay_in_group, ],
                    delay_boundaries[is_delay_in_group, ],
-                   rng)
+                   date_range, rng)
   }
   
   # Initialise each individual row
