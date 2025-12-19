@@ -20,15 +20,6 @@ toy_model <- function(control = mcmc_control()) {
     delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
   )
   
-  dates_by_group <- data.frame(
-    group = c(1, 2, 3, 4),
-    onset = rep(TRUE, 4),
-    hospitalisation = c(FALSE, FALSE, TRUE, TRUE),
-    discharge = c(FALSE, FALSE, TRUE, FALSE),
-    death = c(FALSE, TRUE, FALSE, TRUE),
-    report = rep(TRUE, 4)
-  )
-  
   # Define other parameters
   n_per_group <- rep(10, max(delay_params$group))
   error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
