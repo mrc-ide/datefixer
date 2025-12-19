@@ -2,7 +2,7 @@ test_that("Can run mcmc", {
   set.seed(1)
   control <- mcmc_control(n_steps = 50, n_chains = 3)
   
-  model <- toy_model(control)
+  model <- toy_model(control)$model
   initial <- mcmc_initial(model)
   
   sampler <- datefixer_sampler(control)

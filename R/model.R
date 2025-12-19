@@ -50,7 +50,6 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   model <- likelihood + prior
   
   model$hyperparameters <- hyperparameters
-  
   model$data_packer <- data_packer
   
   model
@@ -93,10 +92,17 @@ validate_data_and_delays <- function(data, delay_map) {
   
   dates <- setdiff(names(data), c("id", "group"))
   
+  delay_info <- make_delay_info(delay_map, dates)
+  
+  delay_info
+}
+
+
+make_delay_info <- function(delay_map, dates) {
   delay_from <- match(delay_map$from, dates)
   delay_to <- match(delay_map$to, dates)
   
-  g <- sort(unique(data$group))
+  g <- sort(unique(unlist(delay_map$group)))
   
   ## logical array - is delay i (row) in group j (col)
   is_delay_in_group <- t(vapply(seq_len(nrow(delay_map)),
@@ -114,11 +120,11 @@ validate_data_and_delays <- function(data, delay_map) {
                              }, array(0, c(length(d), length(g))))
   is_date_in_delay <- 
     apply(aperm(is_date_in_delay, c(1, 3, 2)), c(1, 2, 3), as.logical)
-    
+  
   list(from = delay_from,
        to = delay_to,
        is_delay_in_group = is_delay_in_group,
-       is_date_in_delay = is_date_in_delay)
+       is_date_in_delay = is_date_in_delay)  
 }
 
 

@@ -18,7 +18,7 @@ test_that("update_prob_error_parameters works correctly", {
 
 test_that("update_prob_error updates correctly", {
   
-  model <- toy_model()
+  model <- toy_model()$model
   
   parameters <- model$parameters
   pars <- numeric(length(parameters))
