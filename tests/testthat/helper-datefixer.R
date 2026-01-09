@@ -41,6 +41,7 @@ toy_model <- function(control = mcmc_control()) {
   model <- datefixer_model(sim_result$observed_data, delay_map, hyperparameters, control)
   
   list(model = model,
+       delay_map = delay_map,
        data = sim_result)
   
 }
