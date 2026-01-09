@@ -120,8 +120,12 @@ test_that("log-likelihood aggregates correctly", {
   data <- toy$data
   delay_map <- toy$delay_map
   
-  m <- model$model$data$parts[[1]]
-  expect_true(m$properties$has_augmented_data)
+  ## split the model into the prior and likelihood
+  model_split <- monty::monty_model_split(model)
+  has_augmented_data <- 
+    unlist(lapply(model_split, function (m) m$properties$has_augmented_data))
+  model_likelihood <- model_split[[which(has_augmented_data)]]
+  model_prior <- model_split[[which(!has_augmented_data)]]
   
   prob_error <- 0.08
   mean_delays <- c(8, 5, 3.2, 6.4, 13, 10.7)
@@ -139,7 +143,7 @@ test_that("log-likelihood aggregates correctly", {
     model$data_packer$pack(list(estimated_dates = estimated_dates,
                                 error_indicators = error_indicators))
   attr(pars, "data") <- augmented_data
-  ll_aggregated <- m$density(pars)
+  ll_aggregated <- model_likelihood$density(pars)
   
   
   ## now calculate all ll parts
@@ -164,10 +168,11 @@ test_that("log-likelihood aggregates correctly", {
   ll_delays <- vapply(seq_len(nrow(estimated_dates)), 
                       calc_ll_delay1, numeric(length(mean_delays)))
   
+  ## sum over delay and error log-likelihoods, check it equals aggregated
   expect_equal(ll_aggregated, sum(ll_errors) + sum(ll_delays))
   
   
   ## check overall density is prior density + likelihood density
-  prior <- model$model$data$parts[[2]]$density(pars)
+  prior <- model_prior$density(pars)
   expect_equal(model$density(pars), ll_aggregated + prior)
 })
