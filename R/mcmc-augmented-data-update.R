@@ -304,7 +304,7 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
   
   dates <- which(apply(is_date_in_delay, 1, any))
   
-  d <- 0
+  d <- rep(0, length(updated))
   
   for (j in seq_along(updated)) {
     
@@ -333,10 +333,10 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
       
       if (sum(can_sample_from_delay) == 1) {
         ## single delay involving date i
-        d <- dgamma(delay_values, shape, rate, log = TRUE)
+        d[j] <- dgamma(delay_values, shape, rate, log = TRUE)
       } else {
         ## multiple delays involving date i, so delay selected at random
-        d <- log(sum(dgamma(delay_values, shape, rate))) - 
+        d[j] <- log(sum(dgamma(delay_values, shape, rate))) - 
           log(sum(can_sample_from_delay))
       }
       
@@ -344,7 +344,7 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
     
   }
   
-  d
+  sum(d)
 }
 
 
