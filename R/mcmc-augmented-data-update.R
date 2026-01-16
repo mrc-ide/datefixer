@@ -109,7 +109,7 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
                                      prob_error, delay_info, date_range,
                                      control, rng) {
   
-  if (is.na(augmented_data$error_indicators[1])) {
+  if (is.na(augmented_data$error_indicators[i])) {
     ## missing date, no error indicator update
     return(augmented_data)
   }
