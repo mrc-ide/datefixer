@@ -60,12 +60,11 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
                                     prob_error, delay_info, date_range, 
                                     control, rng) {
   
-    if (!any(delay_info$is_date_in_delay[i, , group])) {
-    ## date i is not associated with any delays for that group, so no update
-    return(augmented_data)
-  }
-  
-  update <- monty::monty_random_real(rng) < control$prob_update_estimated_dates
+  ## we check if date i is associated with any delays for the given group
+  ## if FALSE, no update
+  ## if TRUE, update with probability prob_update_estimated_dates
+  update <- any(delay_info$is_date_in_delay[i, , group]) &&
+    monty::monty_random_real(rng) < control$prob_update_estimated_dates
   if (!update) {
     return(augmented_data)
   }
@@ -109,17 +108,11 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
                                      prob_error, delay_info, date_range,
                                      control, rng) {
   
-  if (is.na(augmented_data$error_indicators[i])) {
-    ## missing date, no error indicator update
-    return(augmented_data)
-  }
-  
-  if (!any(delay_info$is_date_in_delay[i, , group])) {
-    ## date is not associated with any delays for that group, so no update
-    return(augmented_data)
-  }
-  
-  update <- monty::monty_random_real(rng) < control$prob_update_error_indicators
+  ## we check if error indicator is non-NA (so date is non-missing)
+  ## if FALSE, no update
+  ## if TRUE, update with probability prob_update_error_indicators
+  update <- !is.na(augmented_data$error_indicators[i]) &&
+    monty::monty_random_real(rng) < control$prob_update_error_indicators
   if (!update) {
     return(augmented_data)
   }
@@ -361,11 +354,11 @@ swap_error_indicators <- function(augmented_data, observed_dates, group,
                                   prob_error, delay_info, date_range,
                                   control, rng) {
 
-  if (!has_mixed_errors(augmented_data$error_indicators)) {
-    return(augmented_data)
-  }
-  
-  update <- monty::monty_random_real(rng) < control$prob_error_swap
+  ## we check if individual has mixed errors (at least one error and non-error)
+  ## if FALSE, no update
+  ## if TRUE, update with probability prob_error_swap
+  update <- has_mixed_errors(augmented_data$error_indicators) &&
+    monty::monty_random_real(rng) < control$prob_error_swap
   if (!update) {
     return(augmented_data)
   } 
