@@ -208,7 +208,7 @@ test_that("swap error indicators skipped correctly", {
 })
 
 
-test_that("estimated dates proposed correctly",{
+test_that("estimated dates proposed correctly", {
   
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
