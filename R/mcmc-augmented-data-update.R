@@ -364,19 +364,7 @@ swap_error_indicators <- function(augmented_data, observed_dates, group,
     return(augmented_data)
   } 
   
-  # identify relevant delays and event dates for a group
-  is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  dates_from <- delay_info$from[is_delay_in_group]
-  dates_to <- delay_info$to[is_delay_in_group]
-  
-  relevant_dates <- unique(c(dates_from, dates_to))
-  delay_df <- data.frame(from = dates_from, to = dates_to)
-  
-  event_graph <- igraph::graph_from_data_frame(delay_df,
-                                               directed = TRUE,
-                                               vertices = relevant_dates)
-
-  event_order <- as.numeric(names(igraph::topo_sort(event_graph)))
+  event_order <- delay_info$event_order[[group]]
 
   ## TRUE/FALSE is date i for the given group involved in each relevant delay
   is_date_in_delay <- delay_info$is_date_in_delay[, , group]

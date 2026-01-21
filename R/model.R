@@ -123,11 +123,28 @@ make_delay_info <- function(delay_map, dates) {
   
   is_date_in_group <- apply(is_date_in_delay, c(1, 3), any)
   
+  calc_event_order <- function(group) {
+    # identify relevant delays and event dates for a group
+    dates_from <- delay_from[is_delay_in_group[, group]]
+    dates_to <- delay_to[is_delay_in_group[, group]]
+    
+    relevant_dates <- unique(c(dates_from, dates_to))
+    delay_df <- data.frame(from = dates_from, to = dates_to)
+    
+    event_graph <- igraph::graph_from_data_frame(delay_df,
+                                                 directed = TRUE,
+                                                 vertices = relevant_dates)
+    
+    as.numeric(names(igraph::topo_sort(event_graph)))
+  }
+  event_order <- lapply(g, calc_event_order)
+  
   list(from = delay_from,
        to = delay_to,
        is_delay_in_group = is_delay_in_group,
        is_date_in_delay = is_date_in_delay,
-       is_date_in_group = is_date_in_group)  
+       is_date_in_group = is_date_in_group,
+       event_order = event_order)  
 }
 
 
