@@ -204,7 +204,7 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
   
   resampling_order <- 
     calc_resampling_order(to_update, augmented_data$error_indicators,
-                          delay_info$is_date_in_delay[, , group])
+                          delay_info$is_date_connected[, , group])
   
   for (i in resampling_order) {
     if (isFALSE(augmented_data$error_indicators[i])) {
@@ -291,10 +291,11 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
   
   is_date_in_delay <- delay_info$is_date_in_delay[, , group]
   is_date_in_group <- delay_info$is_date_in_group[, group]
+  is_date_connected <- delay_info$is_date_connected[, , group]
   
   resampling_order <- 
     calc_resampling_order(updated, augmented_data$error_indicators,
-                          is_date_in_delay)
+                          is_date_connected)
   
   dates <- which(is_date_in_group)
   
@@ -389,7 +390,7 @@ swap_error_indicators <- function(augmented_data, observed_dates, group,
 
 
 calc_resampling_order <- function(to_resample, error_indicators,
-                                  is_date_in_delay) {
+                                  is_date_connected) {
   
   if (length(to_resample) == 1) {
     return(to_resample)
@@ -406,11 +407,9 @@ calc_resampling_order <- function(to_resample, error_indicators,
     
     while (length(remaining_to_resample) > 1) {
       # Find all dates connected to available dates
-      can_sample_from_delay <- 
-        apply(is_date_in_delay[resampling_order, , drop = FALSE], 2, any)
-      is_connected <- apply(
-        is_date_in_delay[remaining_to_resample, can_sample_from_delay,
-                         drop = FALSE], 1, any)
+      is_connected <- 
+        rowSums(is_date_connected[remaining_to_resample, resampling_order,
+                                  drop = FALSE]) > 0
       connected_dates <- remaining_to_resample[is_connected]
       
       # Earliest connected event according to resampling_order

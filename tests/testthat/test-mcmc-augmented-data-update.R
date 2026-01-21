@@ -10,28 +10,28 @@ test_that("resampling order calculated correctly", {
   ## delay-connected dates to use for sampling
   expect_equal(
     calc_resampling_order(c(1, 3), c(FALSE, NA, TRUE, NA, NA),
-                          delay_info$is_date_in_delay[, , 1]), c(1, 3))
+                          delay_info$is_date_connected[, , 1]), c(1, 3))
   expect_equal(
     calc_resampling_order(c(1, 3), c(TRUE, NA, FALSE, NA, NA),
-                          delay_info$is_date_in_delay[, , 1]), c(3, 1))
+                          delay_info$is_date_connected[, , 1]), c(3, 1))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(TRUE, NA, FALSE, FALSE, NA),
-                          delay_info$is_date_in_delay[, , 2]), c(4, 3, 1))
+                          delay_info$is_date_connected[, , 2]), c(4, 3, 1))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(FALSE, NA, TRUE, TRUE, NA),
-                          delay_info$is_date_in_delay[, , 2]), c(1, 4, 3))
+                          delay_info$is_date_connected[, , 2]), c(1, 4, 3))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(TRUE, NA, FALSE, NA, NA),
-                          delay_info$is_date_in_delay[, , 2]), c(3, 1, 4))
+                          delay_info$is_date_connected[, , 2]), c(3, 1, 4))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(TRUE, NA, FALSE, NA, TRUE),
-                          delay_info$is_date_in_delay[, , 3]), c(3, 1, 2, 5))
+                          delay_info$is_date_connected[, , 3]), c(3, 1, 2, 5))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(FALSE, NA, TRUE, NA, FALSE),
-                          delay_info$is_date_in_delay[, , 3]), c(5, 1, 3, 2))
+                          delay_info$is_date_connected[, , 3]), c(5, 1, 3, 2))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(TRUE, FALSE, FALSE, NA, NA),
-                          delay_info$is_date_in_delay[, , 3]), c(3, 2, 5, 1))
+                          delay_info$is_date_connected[, , 3]), c(3, 2, 5, 1))
 })
 
 
