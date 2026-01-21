@@ -121,10 +121,13 @@ make_delay_info <- function(delay_map, dates) {
   is_date_in_delay <- 
     apply(aperm(is_date_in_delay, c(1, 3, 2)), c(1, 2, 3), as.logical)
   
+  is_date_in_group <- apply(is_date_in_delay, c(1, 3), any)
+  
   list(from = delay_from,
        to = delay_to,
        is_delay_in_group = is_delay_in_group,
-       is_date_in_delay = is_date_in_delay)  
+       is_date_in_delay = is_date_in_delay,
+       is_date_in_group = is_date_in_group)  
 }
 
 

@@ -290,12 +290,13 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
 calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
   
   is_date_in_delay <- delay_info$is_date_in_delay[, , group]
+  is_date_in_group <- delay_info$is_date_in_group[, group]
   
   resampling_order <- 
     calc_resampling_order(updated, augmented_data$error_indicators,
                           is_date_in_delay)
   
-  dates <- which(apply(is_date_in_delay, 1, any))
+  dates <- which(is_date_in_group)
   
   d <- rep(0, length(updated))
   
