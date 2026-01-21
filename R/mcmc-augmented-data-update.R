@@ -60,10 +60,10 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
                                     prob_error, delay_info, date_range, 
                                     control, rng) {
   
-  ## we check if date i is associated with any delays for the given group
+  ## we check if date i is in the given group
   ## if FALSE, no update
   ## if TRUE, update with probability prob_update_estimated_dates
-  update <- any(delay_info$is_date_in_delay[i, , group]) &&
+  update <- delay_info$is_date_in_group[i, group] &&
     monty::monty_random_real(rng) < control$prob_update_estimated_dates
   if (!update) {
     return(augmented_data)
@@ -204,7 +204,7 @@ propose_estimated_dates <- function(to_update, augmented_data, observed_dates,
   
   resampling_order <- 
     calc_resampling_order(to_update, augmented_data$error_indicators,
-                          delay_info$is_date_in_delay[, , group])
+                          delay_info$is_date_connected[, , group])
   
   for (i in resampling_order) {
     if (isFALSE(augmented_data$error_indicators[i])) {
@@ -290,12 +290,14 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
 calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
   
   is_date_in_delay <- delay_info$is_date_in_delay[, , group]
+  is_date_in_group <- delay_info$is_date_in_group[, group]
+  is_date_connected <- delay_info$is_date_connected[, , group]
   
   resampling_order <- 
     calc_resampling_order(updated, augmented_data$error_indicators,
-                          is_date_in_delay)
+                          is_date_connected)
   
-  dates <- which(apply(is_date_in_delay, 1, any))
+  dates <- which(is_date_in_group)
   
   d <- rep(0, length(updated))
   
@@ -345,7 +347,7 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
 
 # Check for individuals with at least one error and non-error (exclude missing)
 has_mixed_errors <- function(error_indicators) {
-  length(unique(na.omit(error_indicators))) == 2
+  length(unique(error_indicators[!is.na(error_indicators)])) == 2
 }
 
 
@@ -363,19 +365,7 @@ swap_error_indicators <- function(augmented_data, observed_dates, group,
     return(augmented_data)
   } 
   
-  # identify relevant delays and event dates for a group
-  is_delay_in_group <- delay_info$is_delay_in_group[, group]
-  dates_from <- delay_info$from[is_delay_in_group]
-  dates_to <- delay_info$to[is_delay_in_group]
-  
-  relevant_dates <- unique(c(dates_from, dates_to))
-  delay_df <- data.frame(from = dates_from, to = dates_to)
-  
-  event_graph <- igraph::graph_from_data_frame(delay_df,
-                                               directed = TRUE,
-                                               vertices = relevant_dates)
-
-  event_order <- as.numeric(names(igraph::topo_sort(event_graph)))
+  event_order <- delay_info$event_order[[group]]
 
   ## TRUE/FALSE is date i for the given group involved in each relevant delay
   is_date_in_delay <- delay_info$is_date_in_delay[, , group]
@@ -400,35 +390,38 @@ swap_error_indicators <- function(augmented_data, observed_dates, group,
 
 
 calc_resampling_order <- function(to_resample, error_indicators,
-                                  is_date_in_delay) {
+                                  is_date_connected) {
   
   if (length(to_resample) == 1) {
     return(to_resample)
   }
   
   ## resample non-errors first
-  non_error <- !error_indicators & !is.na(error_indicators)
-  resampling_order <- to_resample[non_error[to_resample]]
+  err_ind <- error_indicators[to_resample]
+  is_non_error <- !err_ind & !is.na(err_ind)
+  resampling_order <- to_resample[is_non_error]
   
-  remaining_to_resample <- setdiff(to_resample, resampling_order)
+  remaining_to_resample <- to_resample[!is_non_error]
   
-  while (length(remaining_to_resample) > 0) {
+  if (length(remaining_to_resample) > 0) {
     
-    # Find all dates connected to available dates
-    can_sample_from_delay <- 
-      apply(is_date_in_delay[resampling_order, , drop = FALSE], 2, any)
-    is_connected <- apply(
-      is_date_in_delay[remaining_to_resample, can_sample_from_delay,
-                       drop = FALSE], 1, any)
-    connected_dates <- remaining_to_resample[is_connected]
+    while (length(remaining_to_resample) > 1) {
+      # Find all dates connected to available dates
+      is_connected <- 
+        rowSums(is_date_connected[remaining_to_resample, resampling_order,
+                                  drop = FALSE]) > 0
+      connected_dates <- remaining_to_resample[is_connected]
+      
+      # Earliest connected event according to resampling_order
+      earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
+      date_to_sample <- remaining_to_resample[earliest_idx]
+      
+      # Update resampling order and remove from remaining
+      resampling_order <- c(resampling_order, date_to_sample)
+      remaining_to_resample <- remaining_to_resample[-earliest_idx]
+    }
     
-    # Earliest connected event according to resampling_order
-    earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
-    date_to_sample <- remaining_to_resample[earliest_idx]
-    
-    # Update resampling order and remove from remaining
-    resampling_order <- c(resampling_order, date_to_sample)
-    remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
+    resampling_order <- c(resampling_order, remaining_to_resample)
   }
   
   resampling_order

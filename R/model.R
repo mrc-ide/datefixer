@@ -111,7 +111,7 @@ make_delay_info <- function(delay_map, dates) {
   
   d <- seq_along(dates)
   
-  ## logical array - is date i in delay j for group k 
+  ## logical array - is date i (row) in delay j (col) for group k (3rd dim) 
   is_date_in_delay <- vapply(seq_len(nrow(delay_map)),
                              function (i) {
                                x <- d %in% c(delay_from[i], delay_to[i])
@@ -121,10 +121,41 @@ make_delay_info <- function(delay_map, dates) {
   is_date_in_delay <- 
     apply(aperm(is_date_in_delay, c(1, 3, 2)), c(1, 2, 3), as.logical)
   
+  ## logical array - is date i (row) in group j (col)
+  is_date_in_group <- apply(is_date_in_delay, c(1, 3), any)
+  
+  ## logical array - is date i (row) connected to date j (col)
+  ##                 for group k (3rd dim)
+  is_date_connected <- array(FALSE, c(length(d), length(d), length(g)))
+  for (i in seq_along(delay_from)) {
+    delay_groups <- unlist(delay_map$group[i])
+    is_date_connected[delay_from[i], delay_to[i], delay_groups] <- TRUE
+    is_date_connected[delay_to[i], delay_from[i], delay_groups] <- TRUE
+  }
+  
+  calc_event_order <- function(group) {
+    # identify relevant delays and event dates for a group
+    dates_from <- delay_from[is_delay_in_group[, group]]
+    dates_to <- delay_to[is_delay_in_group[, group]]
+    
+    relevant_dates <- unique(c(dates_from, dates_to))
+    delay_df <- data.frame(from = dates_from, to = dates_to)
+    
+    event_graph <- igraph::graph_from_data_frame(delay_df,
+                                                 directed = TRUE,
+                                                 vertices = relevant_dates)
+    
+    as.numeric(names(igraph::topo_sort(event_graph)))
+  }
+  event_order <- lapply(g, calc_event_order)
+  
   list(from = delay_from,
        to = delay_to,
        is_delay_in_group = is_delay_in_group,
-       is_date_in_delay = is_date_in_delay)  
+       is_date_in_delay = is_date_in_delay,
+       is_date_in_group = is_date_in_group,
+       is_date_connected = is_date_connected,
+       event_order = event_order)  
 }
 
 
