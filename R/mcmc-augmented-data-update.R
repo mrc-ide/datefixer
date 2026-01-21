@@ -346,7 +346,7 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
 
 # Check for individuals with at least one error and non-error (exclude missing)
 has_mixed_errors <- function(error_indicators) {
-  length(unique(na.omit(error_indicators))) == 2
+  length(unique(error_indicators[!is.na(error_indicators)])) == 2
 }
 
 
