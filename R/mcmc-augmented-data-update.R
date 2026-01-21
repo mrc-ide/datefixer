@@ -60,10 +60,10 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
                                     prob_error, delay_info, date_range, 
                                     control, rng) {
   
-  ## we check if date i is associated with any delays for the given group
+  ## we check if date i is in the given group
   ## if FALSE, no update
   ## if TRUE, update with probability prob_update_estimated_dates
-  update <- any(delay_info$is_date_in_delay[i, , group]) &&
+  update <- delay_info$is_date_in_group[i, group] &&
     monty::monty_random_real(rng) < control$prob_update_estimated_dates
   if (!update) {
     return(augmented_data)
