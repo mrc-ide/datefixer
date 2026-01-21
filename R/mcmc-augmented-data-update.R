@@ -396,28 +396,33 @@ calc_resampling_order <- function(to_resample, error_indicators,
   }
   
   ## resample non-errors first
-  non_error <- !error_indicators & !is.na(error_indicators)
-  resampling_order <- to_resample[non_error[to_resample]]
+  err_ind <- error_indicators[to_resample]
+  is_non_error <- !err_ind & !is.na(err_ind)
+  resampling_order <- to_resample[is_non_error]
   
-  remaining_to_resample <- setdiff(to_resample, resampling_order)
+  remaining_to_resample <- to_resample[!is_non_error]
   
-  while (length(remaining_to_resample) > 0) {
+  if (length(remaining_to_resample) > 0) {
     
-    # Find all dates connected to available dates
-    can_sample_from_delay <- 
-      apply(is_date_in_delay[resampling_order, , drop = FALSE], 2, any)
-    is_connected <- apply(
-      is_date_in_delay[remaining_to_resample, can_sample_from_delay,
-                       drop = FALSE], 1, any)
-    connected_dates <- remaining_to_resample[is_connected]
+    while (length(remaining_to_resample) > 1) {
+      # Find all dates connected to available dates
+      can_sample_from_delay <- 
+        apply(is_date_in_delay[resampling_order, , drop = FALSE], 2, any)
+      is_connected <- apply(
+        is_date_in_delay[remaining_to_resample, can_sample_from_delay,
+                         drop = FALSE], 1, any)
+      connected_dates <- remaining_to_resample[is_connected]
+      
+      # Earliest connected event according to resampling_order
+      earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
+      date_to_sample <- remaining_to_resample[earliest_idx]
+      
+      # Update resampling order and remove from remaining
+      resampling_order <- c(resampling_order, date_to_sample)
+      remaining_to_resample <- remaining_to_resample[-earliest_idx]
+    }
     
-    # Earliest connected event according to resampling_order
-    earliest_idx <- which(remaining_to_resample %in% connected_dates)[1]
-    date_to_sample <- remaining_to_resample[earliest_idx]
-    
-    # Update resampling order and remove from remaining
-    resampling_order <- c(resampling_order, date_to_sample)
-    remaining_to_resample <- setdiff(remaining_to_resample, date_to_sample)
+    resampling_order <- c(resampling_order, remaining_to_resample)
   }
   
   resampling_order
