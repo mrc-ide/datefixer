@@ -17,6 +17,7 @@ test_that("delay info is setup correctly", {
   delay_to <- c(3, 4, 2, 5, 2, 4)
   expect_equal(delay_info$from, delay_from)
   expect_equal(delay_info$to, delay_to)
+  
   expect_equal(dim(delay_info$is_delay_in_group), c(6, 4))
   expect_equal(delay_info$is_delay_in_group,
                rbind(c(TRUE, TRUE, TRUE, TRUE),
@@ -39,6 +40,41 @@ test_that("delay info is setup correctly", {
     expect_true(all(
       delay_info$is_date_in_delay[c(delay_from[i], delay_to[i]), i, groups]))
   }
+  
+  expect_equal(dim(delay_info$is_date_in_group), c(5, 4))
+  expect_equal(delay_info$is_date_in_group,
+               rbind(c(TRUE, TRUE, TRUE, TRUE),
+                     c(FALSE, FALSE, TRUE, TRUE),
+                     c(TRUE, TRUE, TRUE, TRUE),
+                     c(FALSE, TRUE, FALSE, TRUE),
+                     c(FALSE, FALSE, TRUE, FALSE)))
+  
+  expect_equal(dim(delay_info$is_date_connected), c(5, 5, 4))
+  is_date_connected <- array(FALSE, c(5, 5, 4))
+  ## onset to report for all groups
+  is_date_connected[1, 3, c(1, 2, 3, 4)] <- TRUE
+  is_date_connected[3, 1, c(1, 2, 3, 4)] <- TRUE
+  ## onset to death for group 2
+  is_date_connected[1, 4, 2] <- TRUE
+  is_date_connected[4, 1, 2] <- TRUE
+  ## onset to hospitalisation for groups 3/4
+  is_date_connected[1, 2, c(3, 4)] <- TRUE
+  is_date_connected[2, 1, c(3, 4)] <- TRUE
+  ## hospitalisation to discharge for group 3
+  is_date_connected[2, 5, 3] <- TRUE
+  is_date_connected[5, 2, 3] <- TRUE
+  ## hospitalisation to death for group 4
+  is_date_connected[2, 4, 4] <- TRUE
+  is_date_connected[4, 2, 4] <- TRUE
+  
+  expect_equal(delay_info$is_date_connected, is_date_connected)
+  
+  expect_equal(length(delay_info$event_order), 4)
+  expect_equal(delay_info$event_order,
+               list(c(1, 3),
+                    c(1, 3, 4),
+                    c(1, 2, 3, 5),
+                    c(1, 2, 3, 4)))
   
 })
 
