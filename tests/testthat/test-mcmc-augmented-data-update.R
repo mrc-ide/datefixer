@@ -346,6 +346,7 @@ test_that("proposal density calculated correctly", {
   shape <- 1 / delay_info$cv^2
   rate <- shape / delay_info$mean
   
+  # group 2, 3 dates
   group <- 2
   augmented_data <- list(estimated_dates = c(20.5, NA, 40.2, 50.1, NA),
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
@@ -370,9 +371,9 @@ test_that("proposal density calculated correctly", {
   ## and delay 2, onset (date 1) to death (date 4)
   ## the two delays are equally likely to be used
   updated <- 1
-  d <- log(sum(dgamma(augmented_data$estimated_dates[3:4] - 
+  d <- log(sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
                         augmented_data$estimated_dates[1],
-                      shape = shape[1:2], rate = rate[1:2]))) - log(2)
+                      shape = shape[c(1, 2)], rate = rate[c(1, 2)]))) - log(2)
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, delay_info), d)
   
@@ -381,11 +382,61 @@ test_that("proposal density calculated correctly", {
   ## then onset is proposed based on delay 1, onset (date 1) to report (date 3)
   ## then death is proposed based on delay 2, onset (date 1) to death (date 4)
   updated <- c(1, 3, 4)
-  d <- sum(dgamma(augmented_data$estimated_dates[3:4] - 
+  d <- sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
                     augmented_data$estimated_dates[1],
-                  shape = shape[1:2], rate = rate[1:2], log = TRUE))
+                  shape = shape[c(1, 2)], rate = rate[c(1, 2)], log = TRUE))
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, delay_info), d)
   
   
+  # group 4, 3 dates
+  group <- 4
+  augmented_data <- list(estimated_dates = c(10.3, 15.4, 30.2, 40.1, NA),
+                         error_indicators = c(FALSE, TRUE, FALSE, NA, NA))
+  
+  ## group 4, updated correct onset date
+  ## proposal log-density should be zero
+  updated <- 1
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 4, updated correct report date
+  ## proposal log-density should be zero
+  updated <- 3
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 4, updated error hospitalisation date 
+  ## based on delay 5, onset (date 1) to hospitalisation (date 2)
+  ## and delay 6, hospitalisation (date 2) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 2
+  d <- log(sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+                        augmented_data$estimated_dates[c(1, 2)],
+                      shape = shape[c(5, 6)], rate = rate[c(5, 6)]))) - log(2)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 4, updated missing death date 
+  ## based on delay 6, hospitalisation (date 2) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 4
+  d <- dgamma(augmented_data$estimated_dates[4] - 
+                augmented_data$estimated_dates[2],
+              shape = shape[6], rate = rate[6], log = TRUE)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 4, updated all dates
+  ## onset (date 1) and report (date 3) correct so no impact for proposing
+  ## then hospitalisation is proposed based on delay 5, onset (date 1) to
+  ##    hospitalisation (date 2)
+  ## then death is proposed based on delay 6, hospitalisation (date 2) to
+  ##    death (date 4)
+  updated <- c(1, 2, 3, 4)
+  d <- sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+                    augmented_data$estimated_dates[c(1, 2)],
+                  shape = shape[c(5, 6)], rate = rate[c(5, 6)], log = TRUE))
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
 })
