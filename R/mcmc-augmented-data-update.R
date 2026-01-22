@@ -244,32 +244,43 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
     return(-Inf)
   }
   
-  ## current delays log likelihood
-  ll_delays_current <- datefixer_log_likelihood_delays1(
-    augmented_data$estimated_dates, delay_info$mean, delay_info$cv,
-    delay_info$from, delay_info$to, is_delay_in_group)
   ## new delays log likelihood
   ll_delays_new <- datefixer_log_likelihood_delays1(
     augmented_data_new$estimated_dates, delay_info$mean, delay_info$cv,
     delay_info$from, delay_info$to, is_delay_in_group)
-
-
-  if (any(ll_delays_new == Inf)) {
-    ## ended up in a situation that such a small delay has been drawn that
-    ## when recalculated from the dates it is essentially 0, let's reject for
-    ## the moment
+  
+  if (any(is.infinite(ll_delays_new))) {
+    ## Covering two cases here:
+    ## 1. a proposed delay is negative so we want to auto-reject
+    ## 2. we haveended up in a situation that such a small delay has been drawn
+    ##    that when recalculated from the dates it is essentially 0 and 
+    ##    distribution has infinite density at 0 (CV > 1). Let's reject for
+    ##    the moment
     return(-Inf)
   }
   
-  ## current errors log likelihood
-  ll_errors_current <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data$error_indicators, date_range)
-  ## new errors log likelihood
-  ll_errors_new <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data_new$error_indicators, date_range)
+  ## current delays log likelihood
+  ll_delays_current <- datefixer_log_likelihood_delays1(
+    augmented_data$estimated_dates, delay_info$mean, delay_info$cv,
+    delay_info$from, delay_info$to, is_delay_in_group)
   
   ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
-  ratio_ll_errors <- ll_errors_new - ll_errors_current
+  
+  if (identical(augmented_data$error_indicators, 
+                augmented_data_new$error_indicators)) {
+    ## can skip errors log likelihood calculation
+    ratio_ll_errors <- 0 
+  } else {
+    ## current errors log likelihood
+    ll_errors_current <- datefixer_log_likelihood_errors(
+      prob_error, augmented_data$error_indicators, date_range)
+    ## new errors log likelihood
+    ll_errors_new <- datefixer_log_likelihood_errors(
+      prob_error, augmented_data_new$error_indicators, date_range)
+    
+    ratio_ll_errors <- ll_errors_new - ll_errors_current
+  }
+  
   ratio_post <- ratio_ll_delays + ratio_ll_errors
 
   ## No need to calculate proposal correction if ratio_post is -Inf
