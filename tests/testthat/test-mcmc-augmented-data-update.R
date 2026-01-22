@@ -333,3 +333,59 @@ test_that("estimated dates proposed correctly", {
   
 })
 
+
+test_that("proposal density calculated correctly", {
+  
+  delay_map <- toy_model()$delay_map
+  dates <- c("onset", "hospitalisation", "report", "death", "discharge")
+  delay_info <- make_delay_info(delay_map, dates)
+  
+  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
+  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  
+  shape <- 1 / delay_info$cv^2
+  rate <- shape / delay_info$mean
+  
+  group <- 2
+  augmented_data <- list(estimated_dates = c(20.5, NA, 40.2, 50.1, NA),
+                         error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  
+  ## group 2, updated correct report date
+  ## proposal log-density should be zero
+  updated <- 3
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 2, updated error death date
+  ## proposal based on delay 2 onset (date 1) to death (date 4)
+  updated <- 4
+  d <- dgamma(augmented_data$estimated_dates[4] - 
+                augmented_data$estimated_dates[1],
+              shape = shape[2], rate = rate[2], log = TRUE)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 2, updated missing onset date 
+  ## based on delay 1, onset (date 1) to report (date 3)
+  ## and delay 2, onset (date 1) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 1
+  d <- log(sum(dgamma(augmented_data$estimated_dates[3:4] - 
+                        augmented_data$estimated_dates[1],
+                      shape = shape[1:2], rate = rate[1:2]))) - log(2)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 2, updated all dates
+  ## report (date 3) is correct so has no impact for proposing this
+  ## then onset is proposed based on delay 1, onset (date 1) to report (date 3)
+  ## then death is proposed based on delay 2, onset (date 1) to death (date 4)
+  updated <- c(1, 3, 4)
+  d <- sum(dgamma(augmented_data$estimated_dates[3:4] - 
+                    augmented_data$estimated_dates[1],
+                  shape = shape[1:2], rate = rate[1:2], log = TRUE))
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  
+})
