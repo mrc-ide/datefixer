@@ -298,6 +298,8 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
                           is_date_connected)
   
   dates <- which(is_date_in_group)
+  is_updated <- seq_along(augmented_data$error_indicators) %in% updated
+  available_dates <- which(is_date_in_group & !is_updated)
   
   d <- rep(0, length(updated))
   
@@ -310,10 +312,8 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
     
     if (!isFALSE(augmented_data$error_indicators[i])) {
       ## which dates were available for sampling
-      available_dates <- 
-        setdiff(dates, resampling_order[j:length(resampling_order)])
       is_delay_available <- 
-        apply(is_date_in_delay[available_dates, , drop = FALSE], 2, any)
+        colSums(is_date_in_delay[available_dates, , drop = FALSE]) > 0
       ## which delays could be sampled from
       can_sample_from_delay <- is_date_in_delay[i, ] & 
         is_delay_available
@@ -337,6 +337,7 @@ calc_proposal_density <- function(updated, augmented_data, group, delay_info) {
       
     }
     
+    available_dates <- c(available_dates, i)
   }
   
   sum(d)
