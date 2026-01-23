@@ -142,7 +142,7 @@ make_model_info <- function(delay_map, dates) {
   ##                 for group k (3rd dim)
   is_date_connected <- array(FALSE, c(length(d), length(d), length(g)))
   for (i in seq_along(delay_from)) {
-    delay_groups <- unlist(delay_map$group[i])
+    delay_groups <- match(unlist(delay_map$group[i]), g)
     is_date_connected[delay_from[i], delay_to[i], delay_groups] <- TRUE
     is_date_connected[delay_to[i], delay_from[i], delay_groups] <- TRUE
   }
@@ -161,7 +161,7 @@ make_model_info <- function(delay_map, dates) {
     
     as.numeric(names(igraph::topo_sort(event_graph)))
   }
-  event_order <- lapply(g, calc_event_order)
+  event_order <- lapply(seq_along(g), calc_event_order)
   
   list(delay_from = delay_from,
        delay_to = delay_to,

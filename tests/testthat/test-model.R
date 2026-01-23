@@ -94,6 +94,41 @@ test_that("model info is setup correctly", {
     group = I(list(groups[1:4], groups[2], groups[3], groups[3],
                    groups[4], groups[4]))
   )
+  
+  model_info2 <- make_model_info(delay_map2, dates)
+  ## everything should be the same except for groups
+  expect_identical(model_info2[names(model_info2) != "groups"],
+                   model_info[names(model_info) != "groups"])
+  expect_equal(model_info2$groups, groups)
+  
+  
+  
+  ## named groups, but names are not in alphabetical order
+  groups <- c("alive_community", "dead_community", "alive_hospitalised",
+              "dead_hospitalised")
+  delay_map3 <- data.frame(
+    from = c("onset", "onset", "onset",
+             "hospitalisation", "onset", "hospitalisation"),
+    to = c("report", "death", "hospitalisation",
+           "discharge", "hospitalisation", "death"),
+    group = I(list(groups[1:4], groups[2], groups[3], groups[3],
+                   groups[4], groups[4]))
+  )
+  
+  model_info3 <- make_model_info(delay_map3, dates)
+  ## groups would be sorted into alphabetical order
+  expect_equal(model_info3$groups, sort(groups))
+  ## elements without group dimension should remain unchanged
+  expect_identical(model_info3[c("delay_from", "delay_to")],
+                   model_info[c("delay_from", "delay_to")])
+  ## elements with a group dimension we expect order to have changed
+  g <- match(groups, model_info3$groups)
+  expect_equal(model_info3$is_delay_in_group[, g], model_info$is_delay_in_group)
+  expect_equal(model_info3$is_date_in_delay[, , g], model_info$is_date_in_delay)
+  expect_equal(model_info3$is_date_in_group[, g], model_info$is_date_in_group)
+  expect_equal(model_info3$is_date_connected[, , g],
+               model_info$is_date_connected)
+  expect_equal(model_info3$event_order[g], model_info$event_order)
 })
 
 
