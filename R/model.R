@@ -91,13 +91,17 @@ datefixer_hyperparameters <- function(prob_error_shape1 = 1,
 
 validate_data_and_delays <- function(data, delay_map) {
   ## Here we will validate the data and delays and check they are compatible
-  
   dates <- setdiff(names(data), c("id", "group"))
+  
+  validate_groups(data, delay_map)
   
   if (!("group" %in% names(data))) {
     data$group <- 1
     delay_map$group <- 1
   }
+  
+  data_groups <- sort(unique(data$group))
+  delay_map_groups <- sort(unique(unlist(delay_map$group)))
   
   model_info <- make_model_info(delay_map, dates)
   
@@ -110,9 +114,35 @@ validate_data_and_delays <- function(data, delay_map) {
        groups = groups)
 }
 
+validate_groups <- function(data, delay_map) {
+  
+  is_group_in_data <- "group" %in% names(data)
+  is_group_in_delay_map <- "group" %in% names(delay_map)
+  if (!is_group_in_data && is_group_in_delay_map) {
+    stop("Expected 'group' column in 'data' given it exists in 'delay_map'")
+  }
+  if (is_group_in_data && !is_group_in_delay_map) {
+    stop("Expected 'group' column in 'delay_map' given it exists in 'data'")
+  }
+  
+  if (is_group_in_data && is_group_in_delay_map) {
+    groups_data <- sort(unique(data$group))
+    groups_delay_map <- sort(unique(unlist(delay_map$group)))
+    ## could use identical() here but that will throw an error if groups
+    ## are the same but one set is numeric and one is integer type
+    is_same_groups <- length(groups_data) == length(groups_delay_map) &&
+      all(groups_data == groups_delay_map)
+    if (!is_same_groups) {
+      cli::cli_abort(
+        c("Groups in 'data' do not match those in 'delay_map'",
+          i = "'data' has: {squote(groups_data)}",
+          x = "'delay_map' has: {squote(groups_delay_map)}"))
+    }
+  }
+}
+
 
 make_model_info <- function(delay_map, dates) {
-  
   delay_from <- match(delay_map$from, dates)
   delay_to <- match(delay_map$to, dates)
   
@@ -122,6 +152,11 @@ make_model_info <- function(delay_map, dates) {
   is_delay_in_group <- t(vapply(seq_len(nrow(delay_map)),
                                 function(i) g %in% unlist(delay_map$group[i]),
                                 logical(length(g))))
+  if (length(g) == 1) {
+    ## if only one group the transpose will have setup the dims correct so we
+    ## need to transpose again
+    is_delay_in_group <- t(is_delay_in_group) 
+  }
   
   d <- seq_along(dates)
   
