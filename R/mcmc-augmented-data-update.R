@@ -244,33 +244,44 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
     return(-Inf)
   }
   
-  ## current delays log likelihood
-  ll_delays_current <- datefixer_log_likelihood_delays1(
-    augmented_data$estimated_dates, model_info$delay_mean, model_info$delay_cv,
-    model_info$delay_from, model_info$delay_to, is_delay_in_group)
   ## new delays log likelihood
   ll_delays_new <- datefixer_log_likelihood_delays1(
     augmented_data_new$estimated_dates, model_info$delay_mean, 
     model_info$delay_cv, model_info$delay_from, model_info$delay_to,
     is_delay_in_group)
-
-
-  if (any(ll_delays_new == Inf)) {
-    ## ended up in a situation that such a small delay has been drawn that
-    ## when recalculated from the dates it is essentially 0, let's reject for
-    ## the moment
+  
+  if (any(is.infinite(ll_delays_new))) {
+    ## Covering two cases here:
+    ## 1. a proposed delay is negative so we want to auto-reject
+    ## 2. we haveended up in a situation that such a small delay has been drawn
+    ##    that when recalculated from the dates it is essentially 0 and 
+    ##    distribution has infinite density at 0 (CV > 1). Let's reject for
+    ##    the moment
     return(-Inf)
   }
   
-  ## current errors log likelihood
-  ll_errors_current <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data$error_indicators, date_range)
-  ## new errors log likelihood
-  ll_errors_new <- datefixer_log_likelihood_errors(
-    prob_error, augmented_data_new$error_indicators, date_range)
+  ## current delays log likelihood
+  ll_delays_current <- datefixer_log_likelihood_delays1(
+    augmented_data$estimated_dates, model_info$delay_mean, model_info$delay_cv,
+    model_info$delay_from, model_info$delay_to, is_delay_in_group)
   
   ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
-  ratio_ll_errors <- ll_errors_new - ll_errors_current
+  
+  if (identical(augmented_data$error_indicators, 
+                augmented_data_new$error_indicators)) {
+    ## can skip errors log likelihood calculation
+    ratio_ll_errors <- 0 
+  } else {
+    ## current errors log likelihood
+    ll_errors_current <- datefixer_log_likelihood_errors(
+      prob_error, augmented_data$error_indicators, date_range)
+    ## new errors log likelihood
+    ll_errors_new <- datefixer_log_likelihood_errors(
+      prob_error, augmented_data_new$error_indicators, date_range)
+    
+    ratio_ll_errors <- ll_errors_new - ll_errors_current
+  }
+  
   ratio_post <- ratio_ll_delays + ratio_ll_errors
 
   ## No need to calculate proposal correction if ratio_post is -Inf
@@ -299,6 +310,8 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
                           is_date_connected)
   
   dates <- which(is_date_in_group)
+  is_updated <- seq_along(augmented_data$error_indicators) %in% updated
+  available_dates <- which(is_date_in_group & !is_updated)
   
   d <- rep(0, length(updated))
   
@@ -311,10 +324,8 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
     
     if (!isFALSE(augmented_data$error_indicators[i])) {
       ## which dates were available for sampling
-      available_dates <- 
-        setdiff(dates, resampling_order[j:length(resampling_order)])
       is_delay_available <- 
-        apply(is_date_in_delay[available_dates, , drop = FALSE], 2, any)
+        colSums(is_date_in_delay[available_dates, , drop = FALSE]) > 0
       ## which delays could be sampled from
       can_sample_from_delay <- is_date_in_delay[i, ] & 
         is_delay_available
@@ -338,6 +349,7 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
       
     }
     
+    available_dates <- c(available_dates, i)
   }
   
   sum(d)
