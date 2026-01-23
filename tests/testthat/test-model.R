@@ -1,5 +1,4 @@
 
-
 test_that("model info is setup correctly", {
   delay_map <- data.frame(
     from = c("onset", "onset", "onset",
@@ -129,6 +128,102 @@ test_that("model info is setup correctly", {
   expect_equal(model_info3$is_date_connected[, , g],
                model_info$is_date_connected)
   expect_equal(model_info3$event_order[g], model_info$event_order)
+})
+
+
+test_that("data and delays are validated correctly", {
+  toy <- toy_model()
+  data <- toy$data$observed_data
+  delay_map <- toy$delay_map
+  
+  x <- validate_data_and_delays(data, delay_map)
+  
+  dates <- setdiff(names(data), c("id", "group"))
+  model_info <- make_model_info(delay_map, dates)
+  expect_identical(x$model_info, model_info)
+  expect_equal(x$observed_dates, observed_dates_to_int(data))
+  expect_equal(x$groups, match(data$group, model_info$groups))
+})
+
+
+test_that("data and delays are validated correctly without groups", {
+  toy <- toy_model()
+  data <- toy$data$observed_data
+  delay_map <- toy$delay_map
+  
+  ## only use group 3
+  data <- data[data$group == 3, ]
+  data$group <- NULL
+  data$death <- NULL
+  delays_to_keep <- unlist(lapply(delay_map$group, function(x) 3 %in% x))
+  delay_map <- delay_map[delays_to_keep, ]
+  delay_map$group <- NULL
+  
+  x <- validate_data_and_delays(data, delay_map)
+  
+  dates <- setdiff(names(data), c("id", "group"))
+  delay_map_with_group <- delay_map
+  delay_map$group <- 1
+  model_info <- make_model_info(delay_map, dates)
+  expect_identical(x$model_info, model_info)
+  expect_equal(model_info$delay_from, match(delay_map$from, dates))
+  expect_equal(model_info$delay_to, match(delay_map$to, dates))
+  expect_equal(model_info$is_delay_in_group, array(TRUE, c(3, 1)))
+  expect_equal(dim(model_info$is_date_in_delay), c(4, 3, 1))
+  expect_equal(model_info$is_date_in_delay[, , 1],
+               rbind(c(TRUE, TRUE, FALSE),
+                     c(FALSE, TRUE, TRUE),
+                     c(TRUE, FALSE, FALSE),
+                     c(FALSE, FALSE, TRUE)))
+  expect_equal(model_info$is_date_in_group, array(TRUE, c(4, 1)))
+  expect_equal(dim(model_info$is_date_connected), c(4, 4, 1))
+  expect_equal(model_info$is_date_connected[, , 1],
+               rbind(c(FALSE, TRUE, TRUE, FALSE),
+                     c(TRUE, FALSE, FALSE, TRUE),
+                     c(TRUE, FALSE, FALSE, FALSE),
+                     c(FALSE, TRUE, FALSE, FALSE)))
+  expect_equal(model_info$event_order, list(c(1, 2, 3, 4)))
+  expect_equal(model_info$groups, 1)
+  expect_equal(x$observed_dates, observed_dates_to_int(data))
+  expect_equal(x$groups, rep(1, nrow(data)))
+})
+
+
+test_that("Error when data and delay_map have different groups", {
+  toy <- toy_model()
+  data <- toy$data$observed_data
+  delay_map <- toy$delay_map
+
+  ## No group column in data
+  data_no_group <- data[, names(data) != "group"]
+  expect_error(validate_data_and_delays(data_no_group, delay_map),
+               "Expected 'group' column in 'data'")
+  
+  ## No group column in delay_map
+  delay_map_no_group <- delay_map[, names(delay_map) != "group"]
+  expect_error(validate_data_and_delays(data, delay_map_no_group),
+               "Expected 'group' column in 'delay_map'")
+  
+  ## data missing group 4
+  data_no_group_4 <- data[data$group != 4, ]
+  expect_error(validate_data_and_delays(data_no_group_4, delay_map),
+               "Groups in 'data'")
+  
+  ## delay_map missing group 4
+  is_not_group_4 <- 
+    unlist(lapply(delay_map$group, function(x) !identical(x, 4)))
+  delay_map_no_group_4 <- delay_map[is_not_group_4, ]
+  delay_map_no_group_4$group <- lapply(delay_map_no_group_4$group,
+                                       function (x) setdiff(x, 4))
+  expect_error(validate_data_and_delays(data, delay_map_no_group_4),
+               "Groups in 'data'")
+  
+  ## data has named groups, but numbered groups in delay_map
+  data_named_groups <- data
+  group_names <- c("a", "b", "c", "d")
+  data_named_groups$group <- group_names[data_named_groups$group]
+  expect_error(validate_data_and_delays(data_named_groups, delay_map),
+               "Groups in 'data'")
 })
 
 
