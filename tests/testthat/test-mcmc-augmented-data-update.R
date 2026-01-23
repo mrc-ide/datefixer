@@ -1,7 +1,7 @@
 test_that("resampling order calculated correctly", {
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
   ## Expected behaviour: the result should feature the indexes in the
   ## first argument to_resample, we resample non-errors (FALSE) first and then
@@ -10,35 +10,35 @@ test_that("resampling order calculated correctly", {
   ## delay-connected dates to use for sampling
   expect_equal(
     calc_resampling_order(c(1, 3), c(FALSE, NA, TRUE, NA, NA),
-                          delay_info$is_date_connected[, , 1]), c(1, 3))
+                          model_info$is_date_connected[, , 1]), c(1, 3))
   expect_equal(
     calc_resampling_order(c(1, 3), c(TRUE, NA, FALSE, NA, NA),
-                          delay_info$is_date_connected[, , 1]), c(3, 1))
+                          model_info$is_date_connected[, , 1]), c(3, 1))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(TRUE, NA, FALSE, FALSE, NA),
-                          delay_info$is_date_connected[, , 2]), c(4, 3, 1))
+                          model_info$is_date_connected[, , 2]), c(4, 3, 1))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(FALSE, NA, TRUE, TRUE, NA),
-                          delay_info$is_date_connected[, , 2]), c(1, 4, 3))
+                          model_info$is_date_connected[, , 2]), c(1, 4, 3))
   expect_equal(
     calc_resampling_order(c(1, 4, 3), c(TRUE, NA, FALSE, NA, NA),
-                          delay_info$is_date_connected[, , 2]), c(3, 1, 4))
+                          model_info$is_date_connected[, , 2]), c(3, 1, 4))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(TRUE, NA, FALSE, NA, TRUE),
-                          delay_info$is_date_connected[, , 3]), c(3, 1, 2, 5))
+                          model_info$is_date_connected[, , 3]), c(3, 1, 2, 5))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(FALSE, NA, TRUE, NA, FALSE),
-                          delay_info$is_date_connected[, , 3]), c(5, 1, 3, 2))
+                          model_info$is_date_connected[, , 3]), c(5, 1, 3, 2))
   expect_equal(
     calc_resampling_order(c(5, 3, 2, 1), c(TRUE, FALSE, FALSE, NA, NA),
-                          delay_info$is_date_connected[, , 3]), c(3, 2, 5, 1))
+                          model_info$is_date_connected[, , 3]), c(3, 2, 5, 1))
 })
 
 
 test_that("updating estimated dates skipped correctly", {
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
   rng <- monty::monty_rng_create(seed = 1)
   rng1 <- monty::monty_rng_create(seed = 1) 
@@ -55,7 +55,7 @@ test_that("updating estimated dates skipped correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     update_estimated_dates1(i, augmented_data, observed_dates, group,
-                            prob_error, delay_info, date_range, control, rng)
+                            prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -69,7 +69,7 @@ test_that("updating estimated dates skipped correctly", {
                          error_indicators = c(FALSE, TRUE, FALSE, NA, NA))
   augmented_data_new <- 
     update_estimated_dates1(i, augmented_data, observed_dates, group,
-                            prob_error, delay_info, date_range, control, rng)
+                            prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -81,7 +81,7 @@ test_that("updating estimated dates skipped correctly", {
   control <- mcmc_control(prob_update_estimated_dates = 0)
   augmented_data_new <- 
     update_estimated_dates1(i, augmented_data, observed_dates, group,
-                            prob_error, delay_info, date_range, control, rng)
+                            prob_error, model_info, date_range, control, rng)
   ## augmented_data should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   ## rng should have gone through a single random_real draw so let's do the same
@@ -95,7 +95,7 @@ test_that("updating estimated dates skipped correctly", {
 test_that("updating error indicators skipped correctly", {
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
   rng <- monty::monty_rng_create(seed = 1)
   rng1 <- monty::monty_rng_create(seed = 1)
@@ -112,7 +112,7 @@ test_that("updating error indicators skipped correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     update_error_indicators1(i, augmented_data, observed_dates, group,
-                            prob_error, delay_info, date_range, control, rng)
+                            prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -126,7 +126,7 @@ test_that("updating error indicators skipped correctly", {
                          error_indicators = c(FALSE, TRUE, FALSE, NA, NA))
   augmented_data_new <- 
     update_error_indicators1(i, augmented_data, observed_dates, group,
-                             prob_error, delay_info, date_range, control, rng)
+                             prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -138,7 +138,7 @@ test_that("updating error indicators skipped correctly", {
   control <- mcmc_control(prob_update_error_indicators = 0)
   augmented_data_new <- 
     update_error_indicators1(i, augmented_data, observed_dates, group,
-                             prob_error, delay_info, date_range, control, rng)
+                             prob_error, model_info, date_range, control, rng)
   ## augmented_data should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   ## rng should have gone through a single random_real draw so let's do the same
@@ -152,7 +152,7 @@ test_that("updating error indicators skipped correctly", {
 test_that("swap error indicators skipped correctly", {
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
   rng <- monty::monty_rng_create(seed = 1)
   rng1 <- monty::monty_rng_create(seed = 1)
@@ -168,7 +168,7 @@ test_that("swap error indicators skipped correctly", {
                          error_indicators = c(NA, NA, FALSE, FALSE, NA))
   augmented_data_new <- 
     swap_error_indicators(augmented_data, observed_dates, group,
-                          prob_error, delay_info, date_range, control, rng)
+                          prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -182,7 +182,7 @@ test_that("swap error indicators skipped correctly", {
                          error_indicators = c(FALSE, FALSE, FALSE, NA, NA))
   augmented_data_new <- 
     swap_error_indicators(augmented_data, observed_dates, group,
-                          prob_error, delay_info, date_range, control, rng)
+                          prob_error, model_info, date_range, control, rng)
   ## augmented_data and rng should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   expect_equal(monty::monty_rng_state(rng), monty::monty_rng_state(rng1))
@@ -197,7 +197,7 @@ test_that("swap error indicators skipped correctly", {
   control <- mcmc_control(prob_error_swap = 0)
   augmented_data_new <- 
     swap_error_indicators(augmented_data, observed_dates, group,
-                          prob_error, delay_info, date_range, control, rng)
+                          prob_error, model_info, date_range, control, rng)
   ## augmented_data should be unchanged
   expect_equal(augmented_data, augmented_data_new)
   ## rng should have gone through a single random_real draw so let's do the same
@@ -212,10 +212,10 @@ test_that("estimated dates proposed correctly", {
   
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
-  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
-  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  model_info$delay_mean <- c(5, 8, 3, 4, 7, 10)
+  model_info$delay_cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
   
   rng <- monty::monty_rng_create(seed = 1)
   rng1 <- monty::monty_rng_create(seed = 1)
@@ -228,7 +228,7 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, FALSE)
+                            model_info, rng, FALSE)
   expect_equal(augmented_data$error_indicators,
                augmented_data_new$error_indicators)
   expect_equal(augmented_data$estimated_dates[-to_update],
@@ -245,14 +245,14 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, FALSE)
+                            model_info, rng, FALSE)
   expect_equal(augmented_data$error_indicators,
                augmented_data_new$error_indicators)
   expect_equal(augmented_data$estimated_dates[-to_update],
                augmented_data_new$estimated_dates[-to_update])
   expect_equal(augmented_data_new$estimated_dates[to_update],
                sample_from_delay(to_update, augmented_data_new$estimated_dates,
-                                 group, delay_info, rng1))
+                                 group, model_info, rng1))
   
   
   ## group 2, propose new (missing) onset date
@@ -263,14 +263,14 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, FALSE)
+                            model_info, rng, FALSE)
   expect_equal(augmented_data$error_indicators,
                augmented_data_new$error_indicators)
   expect_equal(augmented_data$estimated_dates[-to_update],
                augmented_data_new$estimated_dates[-to_update])
   expect_equal(augmented_data_new$estimated_dates[to_update],
                sample_from_delay(to_update, augmented_data_new$estimated_dates,
-                                 group, delay_info, rng1))
+                                 group, model_info, rng1))
   
   
   ## group 2, propose new report date, going from correct to error
@@ -281,7 +281,7 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, TRUE)
+                            model_info, rng, TRUE)
   expect_equal(augmented_data$error_indicators[-to_update],
                augmented_data_new$error_indicators[-to_update])
   expect_equal(augmented_data$error_indicators[to_update], FALSE)
@@ -289,7 +289,7 @@ test_that("estimated dates proposed correctly", {
                augmented_data_new$estimated_dates[-to_update])
   expect_equal(augmented_data_new$estimated_dates[to_update],
                sample_from_delay(to_update, augmented_data_new$estimated_dates,
-                                 group, delay_info, rng1))
+                                 group, model_info, rng1))
   
   
   ## group 2, propose new death date, going from error to correct
@@ -300,7 +300,7 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, TRUE)
+                            model_info, rng, TRUE)
   expect_equal(augmented_data$error_indicators[-to_update],
                augmented_data_new$error_indicators[-to_update])
   expect_equal(augmented_data$error_indicators[to_update], TRUE)
@@ -318,7 +318,7 @@ test_that("estimated dates proposed correctly", {
                          error_indicators = c(NA, NA, FALSE, TRUE, NA))
   augmented_data_new <- 
     propose_estimated_dates(to_update, augmented_data, observed_dates, group,
-                            delay_info, rng, TRUE)
+                            model_info, rng, TRUE)
   expect_equal(augmented_data_new$error_indicators, 
                c(NA, NA, TRUE, FALSE, NA))
   estimated_dates <- rep(NA, 5)
@@ -326,9 +326,9 @@ test_that("estimated dates proposed correctly", {
   estimated_dates[4] <- observed_dates[4] + monty::monty_random_real(rng1)
   ## will then sample date 1 (connected to date 4) and then date 3
   estimated_dates[1] <- 
-    sample_from_delay(1, estimated_dates, group, delay_info, rng1)
+    sample_from_delay(1, estimated_dates, group, model_info, rng1)
   estimated_dates[3] <- 
-    sample_from_delay(3, estimated_dates, group, delay_info, rng1)
+    sample_from_delay(3, estimated_dates, group, model_info, rng1)
   expect_equal(augmented_data_new$estimated_dates, estimated_dates)
   
 })
@@ -338,13 +338,13 @@ test_that("proposal density calculated correctly", {
   
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
-  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
-  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  model_info$delay_mean <- c(5, 8, 3, 4, 7, 10)
+  model_info$delay_cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
   
-  shape <- 1 / delay_info$cv^2
-  rate <- shape / delay_info$mean
+  shape <- 1 / model_info$delay_cv^2
+  rate <- shape / model_info$delay_mean
   
   # group 2, 3 dates
   group <- 2
@@ -355,7 +355,7 @@ test_that("proposal density calculated correctly", {
   ## proposal log-density should be zero
   updated <- 3
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+    calc_proposal_density(updated, augmented_data, group, model_info), 0)
   
   ## group 2, updated error death date
   ## proposal based on delay 2 onset (date 1) to death (date 4)
@@ -364,7 +364,7 @@ test_that("proposal density calculated correctly", {
                 augmented_data$estimated_dates[1],
               shape = shape[2], rate = rate[2], log = TRUE)
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 2, updated missing onset date 
   ## based on delay 1, onset (date 1) to report (date 3)
@@ -375,7 +375,7 @@ test_that("proposal density calculated correctly", {
                         augmented_data$estimated_dates[1],
                       shape = shape[c(1, 2)], rate = rate[c(1, 2)]))) - log(2)
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 2, updated all dates
   ## report (date 3) is correct so has no impact for proposing this
@@ -386,7 +386,7 @@ test_that("proposal density calculated correctly", {
                     augmented_data$estimated_dates[1],
                   shape = shape[c(1, 2)], rate = rate[c(1, 2)], log = TRUE))
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   
   # group 4, 3 dates
@@ -398,13 +398,13 @@ test_that("proposal density calculated correctly", {
   ## proposal log-density should be zero
   updated <- 1
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+    calc_proposal_density(updated, augmented_data, group, model_info), 0)
   
   ## group 4, updated correct report date
   ## proposal log-density should be zero
   updated <- 3
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+    calc_proposal_density(updated, augmented_data, group, model_info), 0)
   
   ## group 4, updated error hospitalisation date 
   ## based on delay 5, onset (date 1) to hospitalisation (date 2)
@@ -415,7 +415,7 @@ test_that("proposal density calculated correctly", {
                         augmented_data$estimated_dates[c(1, 2)],
                       shape = shape[c(5, 6)], rate = rate[c(5, 6)]))) - log(2)
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 4, updated missing death date 
   ## based on delay 6, hospitalisation (date 2) to death (date 4)
@@ -425,7 +425,7 @@ test_that("proposal density calculated correctly", {
                 augmented_data$estimated_dates[2],
               shape = shape[6], rate = rate[6], log = TRUE)
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 4, updated all dates
   ## onset (date 1) and report (date 3) correct so no impact for proposing
@@ -438,7 +438,7 @@ test_that("proposal density calculated correctly", {
                     augmented_data$estimated_dates[c(1, 2)],
                   shape = shape[c(5, 6)], rate = rate[c(5, 6)], log = TRUE))
   expect_equal(
-    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+    calc_proposal_density(updated, augmented_data, group, model_info), d)
 })
 
 
@@ -446,10 +446,10 @@ test_that("acceptance probability calculated correctly", {
   
   delay_map <- toy_model()$delay_map
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   
-  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
-  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  model_info$delay_mean <- c(5, 8, 3, 4, 7, 10)
+  model_info$delay_cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
   prob_error <- 0.05
   
   date_range <- c(0, 101)
@@ -458,14 +458,18 @@ test_that("acceptance probability calculated correctly", {
   calc_accept <- function(updated, augmented_data_new, augmented_data, group) {
     ll_delays_current <- 
       datefixer_log_likelihood_delays1(augmented_data$estimated_dates,
-                                       delay_info$mean, delay_info$cv,
-                                       delay_info$from, delay_info$to,
-                                       delay_info$is_delay_in_group[, group])
+                                       model_info$delay_mean, 
+                                       model_info$delay_cv,
+                                       model_info$delay_from, 
+                                       model_info$delay_to,
+                                       model_info$is_delay_in_group[, group])
     ll_delays_new <- 
       datefixer_log_likelihood_delays1(augmented_data_new$estimated_dates,
-                                       delay_info$mean, delay_info$cv,
-                                       delay_info$from, delay_info$to,
-                                       delay_info$is_delay_in_group[, group])
+                                       model_info$delay_mean, 
+                                       model_info$delay_cv,
+                                       model_info$delay_from, 
+                                       model_info$delay_to,
+                                       model_info$is_delay_in_group[, group])
     
     ll_errors_current <-
       datefixer_log_likelihood_errors(prob_error, 
@@ -481,9 +485,9 @@ test_that("acceptance probability calculated correctly", {
     ratio_post <- ratio_ll_delays + ratio_ll_errors
     
     prop_current <- 
-      calc_proposal_density(updated, augmented_data, group, delay_info)
+      calc_proposal_density(updated, augmented_data, group, model_info)
     prop_new <- 
-      calc_proposal_density(updated, augmented_data_new, group, delay_info)
+      calc_proposal_density(updated, augmented_data_new, group, model_info)
     ratio_prop <- prop_current - prop_new
     
     ratio_post + ratio_prop
@@ -501,7 +505,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, TRUE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     -Inf)
   
@@ -511,7 +515,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, TRUE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     -Inf)
   
@@ -522,7 +526,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, TRUE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     -Inf)
   
@@ -532,7 +536,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, TRUE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     -Inf)
   
@@ -542,7 +546,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, TRUE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     calc_accept(updated, augmented_data_new, augmented_data, group))
   
@@ -553,7 +557,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, FALSE, FALSE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     calc_accept(updated, augmented_data_new, augmented_data, group))
   
@@ -563,7 +567,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(NA, NA, TRUE, FALSE, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     calc_accept(updated, augmented_data_new, augmented_data, group))
   
@@ -580,7 +584,7 @@ test_that("acceptance probability calculated correctly", {
                              error_indicators = c(TRUE, FALSE, TRUE, NA, NA))
   expect_equal(
     calc_accept_prob(updated, augmented_data_new, augmented_data,
-                     observed_dates, group, prob_error, delay_info,
+                     observed_dates, group, prob_error, model_info,
                      date_range),
     calc_accept(updated, augmented_data_new, augmented_data, group))
 })

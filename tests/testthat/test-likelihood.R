@@ -36,10 +36,10 @@ test_that("individual delay log-likelihood calculated correctly", {
   
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
   
-  delay_info <- make_delay_info(delay_map, dates)
-  delay_from <- delay_info$from
-  delay_to <- delay_info$to
-  is_delay_in_group <- delay_info$is_delay_in_group
+  model_info <- make_model_info(delay_map, dates)
+  delay_from <- model_info$delay_from
+  delay_to <- model_info$delay_to
+  is_delay_in_group <- model_info$is_delay_in_group
   
   mean_delays <- c(8, 5, 3.2, 6.4, 13, 10.7)
   cv_delays <- c(0.2, 0.8, 0.1, 0.4, 0.5, 0.3)
@@ -148,7 +148,7 @@ test_that("log-likelihood aggregates correctly", {
   
   ## now calculate all ll parts
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
   date_range <- 
     calc_date_range(observed_dates_to_int(data$observed_data), control)
   
@@ -160,10 +160,10 @@ test_that("log-likelihood aggregates correctly", {
   
   ## delay log-likelihood by row (and delay)
   calc_ll_delay1 <- function(i) {
-    group <- 
+    group <- data$true_data$group[i]
     datefixer_log_likelihood_delays1(
-      estimated_dates[i, ], mean_delays, cv_delays, delay_info$from,
-      delay_info$to, delay_info$is_delay_in_group[, data$true_data$group[i]])
+      estimated_dates[i, ], mean_delays, cv_delays, model_info$delay_from,
+      model_info$delay_to, model_info$is_delay_in_group[, group])
   }
   ll_delays <- vapply(seq_len(nrow(estimated_dates)), 
                       calc_ll_delay1, numeric(length(mean_delays)))

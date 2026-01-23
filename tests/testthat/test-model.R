@@ -1,6 +1,6 @@
 
 
-test_that("delay info is setup correctly", {
+test_that("model info is setup correctly", {
   delay_map <- data.frame(
     from = c("onset", "onset", "onset",
              "hospitalisation", "onset", "hospitalisation"),
@@ -11,15 +11,21 @@ test_that("delay info is setup correctly", {
   
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
   
-  delay_info <- make_delay_info(delay_map, dates)
+  model_info <- make_model_info(delay_map, dates)
+  
+  expect_equal(names(model_info),
+               c("delay_from", "delay_to", "is_delay_in_group",
+                 "is_date_in_delay", "is_date_in_group", "is_date_connected",
+                 "event_order", "groups"))
   
   delay_from <- c(1, 1, 1, 2, 1, 2)
   delay_to <- c(3, 4, 2, 5, 2, 4)
-  expect_equal(delay_info$from, delay_from)
-  expect_equal(delay_info$to, delay_to)
+  expect_equal(model_info$delay_from, delay_from)
+  expect_equal(model_info$delay_to, delay_to)
+  expect_equal(model_info$groups, c(1, 2, 3, 4))
   
-  expect_equal(dim(delay_info$is_delay_in_group), c(6, 4))
-  expect_equal(delay_info$is_delay_in_group,
+  expect_equal(dim(model_info$is_delay_in_group), c(6, 4))
+  expect_equal(model_info$is_delay_in_group,
                rbind(c(TRUE, TRUE, TRUE, TRUE),
                      c(FALSE, TRUE, FALSE, FALSE),
                      c(FALSE, FALSE, TRUE, FALSE),
@@ -27,29 +33,29 @@ test_that("delay info is setup correctly", {
                      c(FALSE, FALSE, FALSE, TRUE),
                      c(FALSE, FALSE, FALSE, TRUE)))
   
-  expect_equal(dim(delay_info$is_date_in_delay), c(5, 6, 4))
+  expect_equal(dim(model_info$is_date_in_delay), c(5, 6, 4))
   ## easier to test this by checking the number of TRUE/FALSE is correct,
   ## then checked the TRUEs, we do this by delay
   for (i in seq_len(nrow(delay_map))) {
     ## 2 dates per group related to the delay
     groups <- unlist(delay_map$group[i])
     n_true <- 2 * length(groups)
-    expect_equal(sum(delay_info$is_date_in_delay[, i, ]), n_true)
+    expect_equal(sum(model_info$is_date_in_delay[, i, ]), n_true)
     n_false <- 20 - n_true
-    expect_equal(sum(!delay_info$is_date_in_delay[, i, ]), n_false)
+    expect_equal(sum(!model_info$is_date_in_delay[, i, ]), n_false)
     expect_true(all(
-      delay_info$is_date_in_delay[c(delay_from[i], delay_to[i]), i, groups]))
+      model_info$is_date_in_delay[c(delay_from[i], delay_to[i]), i, groups]))
   }
   
-  expect_equal(dim(delay_info$is_date_in_group), c(5, 4))
-  expect_equal(delay_info$is_date_in_group,
+  expect_equal(dim(model_info$is_date_in_group), c(5, 4))
+  expect_equal(model_info$is_date_in_group,
                rbind(c(TRUE, TRUE, TRUE, TRUE),
                      c(FALSE, FALSE, TRUE, TRUE),
                      c(TRUE, TRUE, TRUE, TRUE),
                      c(FALSE, TRUE, FALSE, TRUE),
                      c(FALSE, FALSE, TRUE, FALSE)))
   
-  expect_equal(dim(delay_info$is_date_connected), c(5, 5, 4))
+  expect_equal(dim(model_info$is_date_connected), c(5, 5, 4))
   is_date_connected <- array(FALSE, c(5, 5, 4))
   ## onset to report for all groups
   is_date_connected[1, 3, c(1, 2, 3, 4)] <- TRUE
@@ -67,16 +73,29 @@ test_that("delay info is setup correctly", {
   is_date_connected[2, 4, 4] <- TRUE
   is_date_connected[4, 2, 4] <- TRUE
   
-  expect_equal(delay_info$is_date_connected, is_date_connected)
+  expect_equal(model_info$is_date_connected, is_date_connected)
   
-  expect_equal(length(delay_info$event_order), 4)
-  expect_equal(delay_info$event_order,
+  expect_equal(length(model_info$event_order), 4)
+  expect_equal(model_info$event_order,
                list(c(1, 3),
                     c(1, 3, 4),
                     c(1, 2, 3, 5),
                     c(1, 2, 3, 4)))
   
+  
+  ## now setup with named groups
+  groups <- c("community_alive", "community_dead", "hospitalised_alive",
+              "hospitalised_dead")
+  delay_map2 <- data.frame(
+    from = c("onset", "onset", "onset",
+             "hospitalisation", "onset", "hospitalisation"),
+    to = c("report", "death", "hospitalisation",
+           "discharge", "hospitalisation", "death"),
+    group = I(list(groups[1:4], groups[2], groups[3], groups[3],
+                   groups[4], groups[4]))
+  )
 })
+
 
 test_that("date range is calculated correctly", {
   data <- toy_model()$data
