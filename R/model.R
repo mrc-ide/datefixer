@@ -13,8 +13,7 @@
 ##' @return A datefixer model
 ##'
 ##' @export
-datefixer_model <- function(data, delay_map, hyperparameters, control,
-                            group_col = NULL) {
+datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   x <- validate_data_and_delays(data, delay_map)
 
