@@ -333,3 +333,254 @@ test_that("estimated dates proposed correctly", {
   
 })
 
+
+test_that("proposal density calculated correctly", {
+  
+  delay_map <- toy_model()$delay_map
+  dates <- c("onset", "hospitalisation", "report", "death", "discharge")
+  delay_info <- make_delay_info(delay_map, dates)
+  
+  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
+  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  
+  shape <- 1 / delay_info$cv^2
+  rate <- shape / delay_info$mean
+  
+  # group 2, 3 dates
+  group <- 2
+  augmented_data <- list(estimated_dates = c(20.5, NA, 40.2, 50.1, NA),
+                         error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  
+  ## group 2, updated correct report date
+  ## proposal log-density should be zero
+  updated <- 3
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 2, updated error death date
+  ## proposal based on delay 2 onset (date 1) to death (date 4)
+  updated <- 4
+  d <- dgamma(augmented_data$estimated_dates[4] - 
+                augmented_data$estimated_dates[1],
+              shape = shape[2], rate = rate[2], log = TRUE)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 2, updated missing onset date 
+  ## based on delay 1, onset (date 1) to report (date 3)
+  ## and delay 2, onset (date 1) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 1
+  d <- log(sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
+                        augmented_data$estimated_dates[1],
+                      shape = shape[c(1, 2)], rate = rate[c(1, 2)]))) - log(2)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 2, updated all dates
+  ## report (date 3) is correct so has no impact for proposing this
+  ## then onset is proposed based on delay 1, onset (date 1) to report (date 3)
+  ## then death is proposed based on delay 2, onset (date 1) to death (date 4)
+  updated <- c(1, 3, 4)
+  d <- sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
+                    augmented_data$estimated_dates[1],
+                  shape = shape[c(1, 2)], rate = rate[c(1, 2)], log = TRUE))
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  
+  # group 4, 3 dates
+  group <- 4
+  augmented_data <- list(estimated_dates = c(10.3, 15.4, 30.2, 40.1, NA),
+                         error_indicators = c(FALSE, TRUE, FALSE, NA, NA))
+  
+  ## group 4, updated correct onset date
+  ## proposal log-density should be zero
+  updated <- 1
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 4, updated correct report date
+  ## proposal log-density should be zero
+  updated <- 3
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), 0)
+  
+  ## group 4, updated error hospitalisation date 
+  ## based on delay 5, onset (date 1) to hospitalisation (date 2)
+  ## and delay 6, hospitalisation (date 2) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 2
+  d <- log(sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+                        augmented_data$estimated_dates[c(1, 2)],
+                      shape = shape[c(5, 6)], rate = rate[c(5, 6)]))) - log(2)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 4, updated missing death date 
+  ## based on delay 6, hospitalisation (date 2) to death (date 4)
+  ## the two delays are equally likely to be used
+  updated <- 4
+  d <- dgamma(augmented_data$estimated_dates[4] - 
+                augmented_data$estimated_dates[2],
+              shape = shape[6], rate = rate[6], log = TRUE)
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+  
+  ## group 4, updated all dates
+  ## onset (date 1) and report (date 3) correct so no impact for proposing
+  ## then hospitalisation is proposed based on delay 5, onset (date 1) to
+  ##    hospitalisation (date 2)
+  ## then death is proposed based on delay 6, hospitalisation (date 2) to
+  ##    death (date 4)
+  updated <- c(1, 2, 3, 4)
+  d <- sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+                    augmented_data$estimated_dates[c(1, 2)],
+                  shape = shape[c(5, 6)], rate = rate[c(5, 6)], log = TRUE))
+  expect_equal(
+    calc_proposal_density(updated, augmented_data, group, delay_info), d)
+})
+
+
+test_that("acceptance probability calculated correctly", {
+  
+  delay_map <- toy_model()$delay_map
+  dates <- c("onset", "hospitalisation", "report", "death", "discharge")
+  delay_info <- make_delay_info(delay_map, dates)
+  
+  delay_info$mean <- c(5, 8, 3, 4, 7, 10)
+  delay_info$cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
+  prob_error <- 0.05
+  
+  date_range <- c(0, 101)
+  
+  ## separate function for calculating acceptance probability
+  calc_accept <- function(updated, augmented_data_new, augmented_data, group) {
+    ll_delays_current <- 
+      datefixer_log_likelihood_delays1(augmented_data$estimated_dates,
+                                       delay_info$mean, delay_info$cv,
+                                       delay_info$from, delay_info$to,
+                                       delay_info$is_delay_in_group[, group])
+    ll_delays_new <- 
+      datefixer_log_likelihood_delays1(augmented_data_new$estimated_dates,
+                                       delay_info$mean, delay_info$cv,
+                                       delay_info$from, delay_info$to,
+                                       delay_info$is_delay_in_group[, group])
+    
+    ll_errors_current <-
+      datefixer_log_likelihood_errors(prob_error, 
+                                      augmented_data$error_indicators,
+                                      date_range)
+    ll_errors_new <-
+      datefixer_log_likelihood_errors(prob_error, 
+                                      augmented_data_new$error_indicators,
+                                      date_range)
+    
+    ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
+    ratio_ll_errors <- ll_errors_new - ll_errors_current
+    ratio_post <- ratio_ll_delays + ratio_ll_errors
+    
+    prop_current <- 
+      calc_proposal_density(updated, augmented_data, group, delay_info)
+    prop_new <- 
+      calc_proposal_density(updated, augmented_data_new, group, delay_info)
+    ratio_prop <- prop_current - prop_new
+    
+    ratio_post + ratio_prop
+  }
+  
+  # group 2
+  group <- 2
+  observed_dates <- c(NA, NA, 40, 68, NA)
+  augmented_data <- list(estimated_dates = c(20.5, NA, 40.2, 50.1, NA),
+                         error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  
+  ## updating error death (date 4) but matching observed date so auto-reject
+  updated <- 4
+  augmented_data_new <- list(estimated_dates = c(20.5, NA, 40.2, 68.1, NA),
+                             error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    -Inf)
+  
+  ## updating death (date 4) but outside date range so auto-reject
+  updated <- 4
+  augmented_data_new <- list(estimated_dates = c(20.5, NA, 40.2, 150.1, NA),
+                             error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    -Inf)
+  
+  
+  ## updating onset (date 1) but outside date range so auto-reject
+  updated <- 1
+  augmented_data_new <- list(estimated_dates = c(-20.5, NA, 40.2, 50.1, NA),
+                             error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    -Inf)
+  
+  ## updating onset (date 1) but negative delay resulting so auto-reject
+  updated <- 1
+  augmented_data_new <- list(estimated_dates = c(43.5, NA, 40.2, 50.1, NA),
+                             error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    -Inf)
+  
+  ## updating onset (date 1)
+  updated <- 1
+  augmented_data_new <- list(estimated_dates = c(10.5, NA, 40.2, 50.1, NA),
+                             error_indicators = c(NA, NA, FALSE, TRUE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    calc_accept(updated, augmented_data_new, augmented_data, group))
+  
+  
+  ## updating death (date 4), switching to correct
+  updated <- 4
+  augmented_data_new <- list(estimated_dates = c(20.5, NA, 40.2, 68.1, NA),
+                             error_indicators = c(NA, NA, FALSE, FALSE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    calc_accept(updated, augmented_data_new, augmented_data, group))
+  
+  ## updating all dates, swapping errors
+  updated <- c(1, 3, 4)
+  augmented_data_new <- list(estimated_dates = c(10.5, NA, 50.2, 68.1, NA),
+                             error_indicators = c(NA, NA, TRUE, FALSE, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    calc_accept(updated, augmented_data_new, augmented_data, group))
+  
+  
+  ## group 4
+  group <- 4
+  observed_dates <- c(10, 5, 30, NA, NA)
+  augmented_data <- list(estimated_dates = c(10.3, 15.4, 30.2, 40.1, NA),
+                         error_indicators = c(FALSE, TRUE, FALSE, NA, NA))
+  
+  ## updating all dates, swapping errors
+  updated <- c(1, 2, 3, 4)
+  augmented_data_new <- list(estimated_dates = c(2.3, 5.2, 33.2, 40.1, NA),
+                             error_indicators = c(TRUE, FALSE, TRUE, NA, NA))
+  expect_equal(
+    calc_accept_prob(updated, augmented_data_new, augmented_data,
+                     observed_dates, group, prob_error, delay_info,
+                     date_range),
+    calc_accept(updated, augmented_data_new, augmented_data, group))
+})
