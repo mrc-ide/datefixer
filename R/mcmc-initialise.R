@@ -150,11 +150,11 @@ initialise_row <- function(individual_data, group, group_delay_map,
 # Initialises augmented data based on observed data
 #' @importFrom dplyr %>% group_by group_modify case_when
 #' @importFrom generics setdiff
-initialise_augmented_data <- function(observed_dates, pars, groups, delay_info,
+initialise_augmented_data <- function(observed_dates, pars, groups, model_info,
                                       date_range, control, rng) {
   
-  delay_map <- data.frame(from = delay_info$from,
-                          to = delay_info$to)
+  delay_map <- data.frame(from = model_info$delay_from,
+                          to = model_info$delay_to)
   
   delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
   delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
@@ -166,7 +166,7 @@ initialise_augmented_data <- function(observed_dates, pars, groups, delay_info,
                                                  init_settings$quantile_range)
 
   initialise1 <- function(i) {
-    is_delay_in_group <- delay_info$is_delay_in_group[, groups[i]]
+    is_delay_in_group <- model_info$is_delay_in_group[, groups[i]]
     initialise_row(observed_dates[i, ], groups[i],
                    delay_map[is_delay_in_group, ],
                    delay_boundaries[is_delay_in_group, ],

@@ -9,16 +9,17 @@
 ##' @param hyperparameters List of hyperparameters
 ##' 
 ##' @param control List of control parameters
-##'
+##' 
 ##' @return A datefixer model
 ##'
 ##' @export
 datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
-  delay_info <- validate_data_and_delays(data, delay_map)
+  x <- validate_data_and_delays(data, delay_map)
 
-  groups <- data$group
-  observed_dates <- observed_dates_to_int(data)
+  groups <- x$groups
+  observed_dates <- x$observed_dates
+  model_info <- x$model_info
   
   date_range <- calc_date_range(observed_dates, control)
   
@@ -32,11 +33,11 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   
   data_packer <- make_augmented_data_packer(observed_dates)
   
-  density <- make_datefixer_density(parameters, groups, delay_info, date_range,
+  density <- make_datefixer_density(parameters, groups, model_info, date_range,
                                     hyperparameters, data_packer)
   
   augmented_data_update <- 
-    make_augmented_data_update(observed_dates, parameters, groups, delay_info,
+    make_augmented_data_update(observed_dates, parameters, groups, model_info,
                                date_range, control, density, data_packer)
   
   likelihood <- monty::monty_model(
@@ -89,16 +90,58 @@ datefixer_hyperparameters <- function(prob_error_shape1 = 1,
 
 validate_data_and_delays <- function(data, delay_map) {
   ## Here we will validate the data and delays and check they are compatible
-  
   dates <- setdiff(names(data), c("id", "group"))
   
-  delay_info <- make_delay_info(delay_map, dates)
+  validate_groups(data, delay_map)
   
-  delay_info
+  if (!("group" %in% names(data))) {
+    data$group <- 1
+    delay_map$group <- 1
+  }
+  
+  data_groups <- sort(unique(data$group))
+  delay_map_groups <- sort(unique(unlist(delay_map$group)))
+  
+  model_info <- make_model_info(delay_map, dates)
+  
+  observed_dates <- observed_dates_to_int(data)
+  
+  groups <- match(data$group, model_info$groups)
+  
+  list(model_info = model_info,
+       observed_dates = observed_dates,
+       groups = groups)
+}
+
+validate_groups <- function(data, delay_map) {
+  
+  is_group_in_data <- "group" %in% names(data)
+  is_group_in_delay_map <- "group" %in% names(delay_map)
+  if (!is_group_in_data && is_group_in_delay_map) {
+    stop("Expected 'group' column in 'data' given it exists in 'delay_map'")
+  }
+  if (is_group_in_data && !is_group_in_delay_map) {
+    stop("Expected 'group' column in 'delay_map' given it exists in 'data'")
+  }
+  
+  if (is_group_in_data && is_group_in_delay_map) {
+    groups_data <- sort(unique(data$group))
+    groups_delay_map <- sort(unique(unlist(delay_map$group)))
+    ## could use identical() here but that will throw an error if groups
+    ## are the same but one set is numeric and one is integer type
+    is_same_groups <- length(groups_data) == length(groups_delay_map) &&
+      all(groups_data == groups_delay_map)
+    if (!is_same_groups) {
+      cli::cli_abort(
+        c("Groups in 'data' do not match those in 'delay_map'",
+          i = "'data' has: {squote(groups_data)}",
+          x = "'delay_map' has: {squote(groups_delay_map)}"))
+    }
+  }
 }
 
 
-make_delay_info <- function(delay_map, dates) {
+make_model_info <- function(delay_map, dates) {
   delay_from <- match(delay_map$from, dates)
   delay_to <- match(delay_map$to, dates)
   
@@ -108,6 +151,11 @@ make_delay_info <- function(delay_map, dates) {
   is_delay_in_group <- t(vapply(seq_len(nrow(delay_map)),
                                 function(i) g %in% unlist(delay_map$group[i]),
                                 logical(length(g))))
+  if (length(g) == 1) {
+    ## if only one group the transpose will have setup the dims correct so we
+    ## need to transpose again
+    is_delay_in_group <- t(is_delay_in_group) 
+  }
   
   d <- seq_along(dates)
   
@@ -128,7 +176,7 @@ make_delay_info <- function(delay_map, dates) {
   ##                 for group k (3rd dim)
   is_date_connected <- array(FALSE, c(length(d), length(d), length(g)))
   for (i in seq_along(delay_from)) {
-    delay_groups <- unlist(delay_map$group[i])
+    delay_groups <- match(unlist(delay_map$group[i]), g)
     is_date_connected[delay_from[i], delay_to[i], delay_groups] <- TRUE
     is_date_connected[delay_to[i], delay_from[i], delay_groups] <- TRUE
   }
@@ -147,25 +195,26 @@ make_delay_info <- function(delay_map, dates) {
     
     as.numeric(names(igraph::topo_sort(event_graph)))
   }
-  event_order <- lapply(g, calc_event_order)
+  event_order <- lapply(seq_along(g), calc_event_order)
   
-  list(from = delay_from,
-       to = delay_to,
+  list(delay_from = delay_from,
+       delay_to = delay_to,
        is_delay_in_group = is_delay_in_group,
        is_date_in_delay = is_date_in_delay,
        is_date_in_group = is_date_in_group,
        is_date_connected = is_date_connected,
-       event_order = event_order)  
+       event_order = event_order,
+       groups = g)  
 }
 
 
-make_datefixer_density <- function(parameters, groups, delay_info, date_range,
+make_datefixer_density <- function(parameters, groups, model_info, date_range,
                                    hyperparameters, data_packer) {
   
   density <- function(pars) {
     names(pars) <- parameters
     
-    log_likelihood <- datefixer_log_likelihood(pars, groups, delay_info,
+    log_likelihood <- datefixer_log_likelihood(pars, groups, model_info,
                                                date_range, data_packer)
   }
   
@@ -201,7 +250,7 @@ make_prior <- function(parameters, hyperparameters, domain) {
 }
 
 
-datefixer_log_likelihood <- function(pars, groups, delay_info, date_range,
+datefixer_log_likelihood <- function(pars, groups, model_info, date_range,
                                      data_packer) {
   augmented_data <- unpack_augmented_data(attr(pars, "data"), data_packer)
   
@@ -209,14 +258,14 @@ datefixer_log_likelihood <- function(pars, groups, delay_info, date_range,
                                                augmented_data$error_indicators,
                                                date_range)
   
-  delays <- seq_along(delay_info$from)
+  delays <- seq_along(model_info$delay_from)
   
   ll_delays <- 
     datefixer_log_likelihood_delays(augmented_data$estimated_dates,
                                     groups,
                                     pars[paste0("mean_delay", delays)],
                                     pars[paste0("cv_delay", delays)],
-                                    delay_info)
+                                    model_info)
   
   
   ll_errors + ll_delays
@@ -238,7 +287,7 @@ datefixer_log_likelihood_errors <- function(prob_error, error_indicators,
 
 
 datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays,
-                                            cv_delays, delay_info) {
+                                            cv_delays, model_info) {
   
   ll_delays <- array(0, c(length(groups), length(mean_delays)))
   for (i in unique(groups)) {
@@ -247,9 +296,9 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
       datefixer_log_likelihood_delays1(estimated_dates[group_i, , drop = FALSE],
                                        mean_delays,
                                        cv_delays,
-                                       delay_info$from,
-                                       delay_info$to,
-                                       delay_info$is_delay_in_group[, i])
+                                       model_info$delay_from,
+                                       model_info$delay_to,
+                                       model_info$is_delay_in_group[, i])
   }
   
   sum(ll_delays)
@@ -291,7 +340,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
 
 
 make_augmented_data_update <- function(observed_dates, parameters, groups,
-                                       delay_info, date_range, control,
+                                       model_info, date_range, control,
                                        density_fn, data_packer) {
   augmented_data_update <- function(pars, rng) {
     augmented_data <- attr(pars, "data")
@@ -301,7 +350,7 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
     if (is.null(augmented_data)) {
       ## augmented data does not exist, so we initialise it
       augmented_data <- 
-        initialise_augmented_data(observed_dates, pars, groups, delay_info,
+        initialise_augmented_data(observed_dates, pars, groups, model_info,
                                   date_range, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
       
@@ -310,7 +359,7 @@ make_augmented_data_update <- function(observed_dates, parameters, groups,
     } else {
       augmented_data <- unpack_augmented_data(augmented_data, data_packer)
       augmented_data <- update_augmented_data(augmented_data, observed_dates,
-                                              pars, groups, delay_info,
+                                              pars, groups, model_info,
                                               date_range, control, rng)
       augmented_data <- data_packer$pack(augmented_data)
       attr(pars, "data") <- augmented_data
