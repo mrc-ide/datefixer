@@ -47,7 +47,7 @@
 #' )
 #'
 #' # Define other parameters
-#' n_per_group <- rep(10, max(delay_params$group))
+#' n_per_group <- rep(10, length(unique(delay_params$group)))
 #' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
 #' date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 #'
@@ -118,12 +118,15 @@ simulate_data <- function(n_per_group,
 #' @export
 simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
 
+  group_names <- unique(delay_params$group)
+  
   n_groups <- length(n_per_group)
   total_indiv <- sum(n_per_group)
   
   all_event_names <- unique(c(delay_map$from, delay_map$to))
   true_data <- data.frame(id = 1:total_indiv,
-                          group = rep(1:n_groups, times = n_per_group))
+                          group = rep(group_names, times = n_per_group),
+                          stringsAsFactors = FALSE)
   
   for (name in all_event_names) true_data[[name]] <- NA
   
@@ -149,7 +152,9 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
     while (!valid_dates && attempts < max_attempts) {
       attempts <- attempts + 1
     
-      proposed_dates <- unlist(true_data[i,])
+      event_cols <- unique(c(delay_map$from, delay_map$to))
+      
+      proposed_dates <- unlist(true_data[i, event_cols])
 
     # Simulate root events ("from" events)
     for (root in root_events) {
