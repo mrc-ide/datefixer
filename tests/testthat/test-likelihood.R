@@ -160,7 +160,7 @@ test_that("log-likelihood aggregates correctly", {
   
   ## delay log-likelihood by row (and delay)
   calc_ll_delay1 <- function(i) {
-    group <- data$true_data$group[i]
+    group <- which(model_info$groups == data$true_data$group[i])
     datefixer_log_likelihood_delays1(
       estimated_dates[i, ], mean_delays, cv_delays, model_info$delay_from,
       model_info$delay_to, model_info$is_delay_in_group[, group])

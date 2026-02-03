@@ -119,14 +119,13 @@ simulate_data <- function(n_per_group,
 simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
 
   group_names <- unique(delay_params$group)
-  n_per_group <- setNames(n_per_group, group_names)
   
   n_groups <- length(n_per_group)
   total_indiv <- sum(n_per_group)
   
   all_event_names <- unique(c(delay_map$from, delay_map$to))
   true_data <- data.frame(id = 1:total_indiv,
-                          group = rep(names(n_per_group), times = n_per_group),
+                          group = rep(group_names, times = n_per_group),
                           stringsAsFactors = FALSE)
   
   for (name in all_event_names) true_data[[name]] <- NA
