@@ -9,8 +9,9 @@ simulate_data(
   delay_map,
   delay_params,
   error_params,
-  range_dates,
-  simul_error = FALSE
+  date_range,
+  simul_error = FALSE,
+  true_data = NULL
 )
 }
 \arguments{
@@ -25,9 +26,13 @@ of numeric group IDs).}
 
 \item{error_params}{A list containing \code{prop_missing_data} and \code{prob_error}.}
 
-\item{range_dates}{A vector of two integer dates for the simulation range.}
+\item{date_range}{A vector of two integer dates for the simulation range.}
 
 \item{simul_error}{Boolean. If TRUE, simulates missing and erroneous data.}
+
+\item{true_data}{Optional dataframe containing the true, unobserved dates.
+If supplied, used as the ground truth for simulating observed dates and
+errors. If 'NULL', the true data is generated internally.}
 }
 \value{
 A list with three data frames: \code{true_data}, \code{observed_data}, and
@@ -60,7 +65,7 @@ delay_params <- data.frame(
 # Define other parameters
 n_per_group <- rep(10, max(delay_params$group))
 error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
+date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 
 # Run simulation
 set.seed(1)
@@ -69,7 +74,7 @@ sim_result <- simulate_data(
   delay_map = delay_map,
   delay_params = delay_params,
   error_params = error_params,
-  range_dates = range_dates,
+  date_range = date_range,
   simul_error = TRUE
 )
 

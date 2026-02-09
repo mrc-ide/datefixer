@@ -18,3 +18,14 @@ int_to_date <- function(int, origin = "1970-01-01") {
 data_frame_to_array <- function(df) {
   array(unlist(df), dim(df))
 }
+
+
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}
+
+
+squote <- function(x) {
+  sprintf("'%s'", x)
+}
+

@@ -2,9 +2,12 @@
 
 export(datefixer_hyperparameters)
 export(datefixer_model)
+export(datefixer_sampler)
 export(mcmc_control)
+export(mcmc_initial)
 export(mcmc_run)
 export(simulate_data)
+export(simulate_true_data)
 import(dplyr)
 importFrom(dplyr,"%>%")
 importFrom(dplyr,case_when)

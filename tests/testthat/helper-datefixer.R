@@ -20,19 +20,10 @@ toy_model <- function(control = mcmc_control()) {
     delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
   )
   
-  dates_by_group <- data.frame(
-    group = c(1, 2, 3, 4),
-    onset = rep(TRUE, 4),
-    hospitalisation = c(FALSE, FALSE, TRUE, TRUE),
-    discharge = c(FALSE, FALSE, TRUE, FALSE),
-    death = c(FALSE, TRUE, FALSE, TRUE),
-    report = rep(TRUE, 4)
-  )
-  
   # Define other parameters
   n_per_group <- rep(10, max(delay_params$group))
   error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-  range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
+  date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
   
   # Run simulation
   sim_result <- simulate_data(
@@ -40,12 +31,17 @@ toy_model <- function(control = mcmc_control()) {
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    range_dates = range_dates,
+    date_range = date_range,
     simul_error = TRUE
   )
   
   ## setup model
   hyperparameters <- datefixer_hyperparameters()
   
-  datefixer_model(sim_result$observed_data, delay_map, hyperparameters, control)
+  model <- datefixer_model(sim_result$observed_data, delay_map, hyperparameters, control)
+  
+  list(model = model,
+       delay_map = delay_map,
+       data = sim_result)
+  
 }
