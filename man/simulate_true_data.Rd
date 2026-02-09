@@ -13,8 +13,8 @@ simulate_true_data(n_per_group, delay_map, delay_params, date_range)
 contain the columns \code{from} (character), \code{to} (character), and \code{group} (list
 of numeric group IDs).}
 
-\item{delay_params}{A data frame containing the parameters (\code{delay_mean},
-\code{delay_cv}) for each delay. Consider combining delay_map and delay_params?}
+\item{delay_params}{A data frame containing the parameters (\code{mean_delay},
+\code{cv_delay}) for each delay. Consider combining delay_map and delay_params?}
 
 \item{date_range}{A vector of two integer dates for the simulation range.}
 }

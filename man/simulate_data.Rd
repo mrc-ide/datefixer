@@ -63,7 +63,7 @@ delay_params <- data.frame(
 )
 
 # Define other parameters
-n_per_group <- rep(10, max(delay_params$group))
+n_per_group <- rep(10, length(unique(delay_params$group)))
 error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
 date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 
