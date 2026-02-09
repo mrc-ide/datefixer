@@ -22,12 +22,14 @@ toy_model <- function(control = mcmc_control()) {
   
   # Define other parameters
   n_per_group <- rep(10, max(delay_params$group))
+  group_names <- c(1, 2, 3, 4)
   error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
   date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
   
   # Run simulation
   sim_result <- simulate_data(
     n_per_group = n_per_group,
+    group_names = group_names,
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,

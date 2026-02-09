@@ -30,6 +30,8 @@ delay_params <- data.frame(
 
 # Define other parameters
 n_per_group <- rep(10, length(unique(delay_params$group)))
+group_names <- c("community-alive", "community-dead", "hospitalised-alive",
+                 "hospitalised-dead")
 error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
 date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 
@@ -38,6 +40,7 @@ test_that("simulate_data returns correct structure and dimensions", {
   set.seed(1)
   sim_result <- simulate_data(
     n_per_group = n_per_group,
+    group_names = group_names,
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
@@ -65,6 +68,7 @@ test_that("error_params as expected in simulated data", {
   set.seed(1)
   sim_result <- simulate_data(
     n_per_group = n_per_group,
+    group_names = group_names,
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
@@ -111,9 +115,12 @@ test_that("simulate_data handles numeric groups correctly", {
   numeric_delay_params <- delay_params
   numeric_delay_params$group <- as.numeric(group_map[delay_params$group])
   
+  group_names <- as.numeric(seq_along(unique_groups))
+  
   set.seed(1)
   sim_result <- simulate_data(
     n_per_group = n_per_group,
+    group_names = group_names,
     delay_map = numeric_delay_map,
     delay_params = numeric_delay_params,
     error_params = error_params,

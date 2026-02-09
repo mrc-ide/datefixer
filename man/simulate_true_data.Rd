@@ -4,14 +4,23 @@
 \alias{simulate_true_data}
 \title{Simulate true data}
 \usage{
-simulate_true_data(n_per_group, delay_map, delay_params, date_range)
+simulate_true_data(
+  n_per_group,
+  group_names,
+  delay_map,
+  delay_params,
+  date_range
+)
 }
 \arguments{
 \item{n_per_group}{Vector of number of individuals to simulate in each group.}
 
+\item{group_names}{A character or numeric vector of names for the groups
+being simulated.}
+
 \item{delay_map}{A data frame that defines the delays between events. It must
 contain the columns \code{from} (character), \code{to} (character), and \code{group} (list
-of numeric group IDs).}
+of numeric or character group IDs).}
 
 \item{delay_params}{A data frame containing the parameters (\code{mean_delay},
 \code{cv_delay}) for each delay. Consider combining delay_map and delay_params?}

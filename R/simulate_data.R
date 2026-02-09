@@ -3,9 +3,11 @@
 #' Simulate a dataset with true dates, observed dates and error indicators
 #'
 #' @param n_per_group Vector of number of individuals to simulate in each group.
+#' @param group_names A character or numeric vector of names for the groups
+#'  being simulated.
 #' @param delay_map A data frame that defines the delays between events. It must
 #'   contain the columns `from` (character), `to` (character), and `group` (list
-#'   of numeric group IDs).
+#'   of numeric or character group IDs).
 #' @param delay_params A data frame containing the parameters (`mean_delay`,
 #'  `cv_delay`) for each delay. Consider combining delay_map and delay_params?
 #' @param error_params A list containing `prop_missing_data` and `prob_error`.
@@ -58,6 +60,8 @@
 #'
 #' # Define other parameters
 #' n_per_group <- rep(10, length(unique(delay_params$group)))
+#' group_names <- c("community-alive", "community-dead", "hospitalised-alive",
+#'             "hospitalised-dead")
 #' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
 #' date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 #'
@@ -65,6 +69,7 @@
 #' set.seed(1)
 #' sim_result <- simulate_data(
 #'   n_per_group = n_per_group,
+#'   group_names = group_names,
 #'   delay_map = delay_map,
 #'   delay_params = delay_params,
 #'   error_params = error_params,
@@ -77,6 +82,7 @@
 #' sim_result$error_indicators # true error indicators
 #'
 simulate_data <- function(n_per_group,
+                          group_names,
                           delay_map,
                           delay_params,
                           error_params,
@@ -84,8 +90,13 @@ simulate_data <- function(n_per_group,
                           simul_error = FALSE,
                           true_data = NULL) {
   
+  # Handle single n_per_group for all groups
+  if (length(n_per_group) == 1) {
+    n_per_group <- rep(n_per_group, length(group_names))
+  }
+  
   if (is.null(true_data)) {
-  true_data <- simulate_true_data(n_per_group, delay_map,
+  true_data <- simulate_true_data(n_per_group, group_names, delay_map,
                                   delay_params, date_range)
   }
   
@@ -126,14 +137,12 @@ simulate_data <- function(n_per_group,
 #' @importFrom stats rgamma
 #' @importFrom igraph graph_from_data_frame topo_sort degree
 #' @export
-simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
-
-  group_names <- unique(delay_params$group)
+simulate_true_data <- function(n_per_group, group_names,
+                               delay_map, delay_params, date_range) {
   
-  n_groups <- length(n_per_group)
   total_indiv <- sum(n_per_group)
-  
   all_event_names <- unique(c(delay_map$from, delay_map$to))
+  
   true_data <- data.frame(id = 1:total_indiv,
                           group = rep(group_names, times = n_per_group),
                           stringsAsFactors = FALSE)
