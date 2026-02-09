@@ -1,41 +1,54 @@
+# Define the delay_map data frame
 delay_map <- data.frame(
-  from = c("onset", "onset", "onset", "hospitalisation", "onset",
-           "hospitalisation"),
-  to = c("report", "death", "hospitalisation", "discharge", "hospitalisation",
-         "death"),
-  group = I(list(1:4, 2, 3, 3, 4, 4))
+  from = c("onset", "onset", "onset",
+           "hospitalisation", "onset", "hospitalisation"),
+  to = c("report", "death", "hospitalisation",
+         "discharge", "hospitalisation", "death"),
+  group = I(list(
+    c("community-alive", "community-dead",
+      "hospitalised-alive", "hospitalised-dead"),
+    "community-dead",
+    "hospitalised-alive",
+    "hospitalised-alive", 
+    "hospitalised-dead",
+    "hospitalised-dead"
+  ))
 )
 
+# Define the delay parameters data frame
 delay_params <- data.frame(
-  group = c(1:4, 2, 3, 3, 4, 4),
+  group = c("community-alive", "community-dead", "hospitalised-alive",
+            "hospitalised-dead", "community-dead", "hospitalised-alive",
+            "hospitalised-alive", "hospitalised-dead", "hospitalised-dead"),
   from = c("onset", "onset", "onset", "onset", "onset", "onset",
            "hospitalisation", "onset", "hospitalisation"),
   to = c("report", "report", "report", "report", "death", "hospitalisation",
          "discharge", "hospitalisation", "death"),
-  mean_delay = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-  cv_delay = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+  delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+  delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 )
 
+# Define other parameters
+n_per_group <- rep(10, length(unique(delay_params$group)))
+error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
+date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
+
+
 test_that("simulate_data returns correct structure and dimensions", {
-  
-  n_per_group <- rep(10, max(delay_params$group))
-  total_n <- sum(n_per_group)
-  error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-  range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
-  
   set.seed(1)
   sim_result <- simulate_data(
     n_per_group = n_per_group,
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    range_dates = range_dates,
+    date_range = date_range,
     simul_error = TRUE
   )
-  
+
   expect_type(sim_result, "list")
   expect_named(sim_result, c("true_data", "observed_data", "error_indicators"))
   
+  total_n <- sum(n_per_group)
   expect_equal(nrow(sim_result$true_data), total_n)
   expect_equal(nrow(sim_result$observed_data), total_n)
   expect_equal(nrow(sim_result$error_indicators), total_n)
@@ -46,20 +59,16 @@ test_that("simulate_data returns correct structure and dimensions", {
   expect_true(all(expected_cols %in% names(sim_result$observed_data)))
 })
 
-test_that("error_params as expected in simulated data", {
 
-  n_per_group <- rep(100, max(delay_params$group))
-  total_n <- sum(n_per_group)
-  error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
-  range_dates <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
-  
+test_that("error_params as expected in simulated data", {
+  n_per_group <- rep(100, length(unique(delay_params$group)))
   set.seed(1)
   sim_result <- simulate_data(
     n_per_group = n_per_group,
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    range_dates = range_dates,
+    date_range = date_range,
     simul_error = TRUE
   )
   
