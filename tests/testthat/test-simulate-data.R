@@ -95,3 +95,37 @@ test_that("error_params as expected in simulated data", {
 })
 
 
+test_that("simulate_data handles numeric groups correctly", {
+  # numeric groups
+  unique_groups <- unique(delay_params$group)
+  group_map <- setNames(seq_along(unique_groups), unique_groups)
+  
+  # convert delay_map groups to numeric
+  numeric_delay_map <- delay_map
+  numeric_delay_map$group <- I(lapply(delay_map$group, function(g) {
+    as.numeric(group_map[g])
+  }))
+  
+  # convert delay_params groups to numeric
+  numeric_delay_params <- delay_params
+  numeric_delay_params$group <- as.numeric(group_map[delay_params$group])
+  
+  set.seed(1)
+  sim_result <- simulate_data(
+    n_per_group = n_per_group,
+    delay_map = numeric_delay_map,
+    delay_params = numeric_delay_params,
+    error_params = error_params,
+    date_range = date_range,
+    simul_error = TRUE
+  )
+  
+  expect_type(sim_result$true_data$group, "double")
+  expect_equal(sort(unique(sim_result$true_data$group)), unname(group_map))
+  expect_equal(nrow(sim_result$true_data), sum(n_per_group))
+  
+  # check that dates are not all NA
+  date_cols <- c("onset", "report", "death", "hospitalisation", "discharge")
+  expect_true(any(!is.na(sim_result$true_data[, date_cols])))
+})
+
