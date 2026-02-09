@@ -84,14 +84,15 @@ test_that("error_params as expected in simulated data", {
   
   # test the proportion of missing data
   observed_prop_missing <- sum(is.na(eligible_indicators)) / n_eligible_points
-  expect_equal(observed_prop_missing, error_params$prop_missing_data,
-               tolerance = 0.05)
+  diff_missing <- observed_prop_missing - error_params$prop_missing_data
+  expect_equal(diff_missing, 0, tolerance = 0.05)
   
   # test the probability of an error
   non_missing_indicators <- na.omit(eligible_indicators)
   observed_prob_error <- sum(non_missing_indicators) /
     length(non_missing_indicators)
-  expect_equal(observed_prob_error, error_params$prob_error, tolerance = 0.05)
+  diff_error <- observed_prob_error - error_params$prob_error
+  expect_equal(diff_error, 0, tolerance = 0.05)
 })
 
 
@@ -136,13 +137,14 @@ test_that("simulate_data handles numeric groups correctly", {
   
   # test the proportion of missing data
   observed_prop_missing <- sum(is.na(eligible_indicators)) / n_eligible_points
-  expect_equal(observed_prop_missing, error_params$prop_missing_data,
-               tolerance = 0.05)
+  diff_missing <- observed_prop_missing - error_params$prop_missing_data
+  expect_equal(diff_missing, 0, tolerance = 0.05)
   
   # test the probability of an error
   non_missing_indicators <- na.omit(eligible_indicators)
   observed_prob_error <- sum(non_missing_indicators) /
     length(non_missing_indicators)
-  expect_equal(observed_prob_error, error_params$prob_error, tolerance = 0.05)
+  diff_error <- observed_prob_error - error_params$prob_error
+  expect_equal(diff_error, 0, tolerance = 0.05)
 })
 
