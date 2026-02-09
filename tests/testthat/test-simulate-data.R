@@ -124,8 +124,25 @@ test_that("simulate_data handles numeric groups correctly", {
   expect_equal(sort(unique(sim_result$true_data$group)), unname(group_map))
   expect_equal(nrow(sim_result$true_data), sum(n_per_group))
   
-  # check that dates are not all NA
-  date_cols <- c("onset", "report", "death", "hospitalisation", "discharge")
-  expect_true(any(!is.na(sim_result$true_data[, date_cols])))
+  # just the date columns from the true data and error indicators
+  date_cols <- setdiff(names(sim_result$true_data), c("id", "group"))
+  true_dates <- sim_result$true_data[, date_cols]
+  error_indic <- sim_result$error_indicators[, date_cols]
+  
+  # identify date entries that should be observed in the groups
+  eligible_dates <- !is.na(true_dates)
+  n_eligible_points <- sum(eligible_dates)
+  eligible_indicators <- error_indic[eligible_dates]
+  
+  # test the proportion of missing data
+  observed_prop_missing <- sum(is.na(eligible_indicators)) / n_eligible_points
+  expect_equal(observed_prop_missing, error_params$prop_missing_data,
+               tolerance = 0.05)
+  
+  # test the probability of an error
+  non_missing_indicators <- na.omit(eligible_indicators)
+  observed_prob_error <- sum(non_missing_indicators) /
+    length(non_missing_indicators)
+  expect_equal(observed_prob_error, error_params$prob_error, tolerance = 0.05)
 })
 
