@@ -202,6 +202,7 @@ simulate_true_data <- function(n_per_group, group_names,
 #' @description Simulate observed data incorporating observation error from true
 #'    data
 #' @inheritParams simulate_data
+#' @param true_data Dataframe containing the true, unobserved dates.
 #' @export
 add_observation_errors <- function(true_data, error_params, date_range) {
 

@@ -7,6 +7,8 @@
 add_observation_errors(true_data, error_params, date_range)
 }
 \arguments{
+\item{true_data}{Dataframe containing the true, unobserved dates.}
+
 \item{error_params}{A list containing \code{prop_missing_data} and \code{prob_error}.}
 
 \item{date_range}{A vector of two integer dates for the simulation range.}
