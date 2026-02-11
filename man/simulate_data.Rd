@@ -10,9 +10,7 @@ simulate_data(
   delay_map,
   delay_params,
   error_params,
-  date_range,
-  simul_error = FALSE,
-  true_data = NULL
+  date_range
 )
 }
 \arguments{
@@ -31,12 +29,6 @@ of numeric or character group IDs).}
 \item{error_params}{A list containing \code{prop_missing_data} and \code{prob_error}.}
 
 \item{date_range}{A vector of two integer dates for the simulation range.}
-
-\item{simul_error}{Boolean. If TRUE, simulates missing and erroneous data.}
-
-\item{true_data}{Optional dataframe containing the true, unobserved dates.
-If supplied, used as the ground truth for simulating observed dates and
-errors. If 'NULL', the true data is generated internally.}
 }
 \value{
 A list with three data frames: \code{true_data}, \code{observed_data}, and
@@ -91,8 +83,7 @@ sim_result <- simulate_data(
   delay_map = delay_map,
   delay_params = delay_params,
   error_params = error_params,
-  date_range = date_range,
-  simul_error = TRUE
+  date_range = date_range
 )
 
 sim_result$true_data
