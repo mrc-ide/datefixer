@@ -148,3 +148,59 @@ test_that("simulate_data handles bad inputs correctly", {
                              date_range = params$date_range),
                "Groups in 'group_names' do not match those in 'delay_map'")
 })
+
+
+test_that("simulate_data handles vector and scalar n_per_group correctly", {
+  
+  params <- toy_model_params()
+  
+  check_n_per_group <- function(x) {
+    unname(vapply(params$group_names, function(nm) sum(x$group == nm), 1))
+  }
+  
+  set.seed(1)
+  sim_result <- simulate_data(
+    n_per_group = params$n_per_group,
+    group_names = params$group_names,
+    delay_map = params$delay_map,
+    delay_params = params$delay_params,
+    error_params = params$error_params,
+    date_range = params$date_range
+  )
+  
+  ## same as above but just scalar input to n_per_group, should be the same
+  ## across groups
+  set.seed(1)
+  sim_result2 <- simulate_data(
+    n_per_group = params$n_per_group[1],
+    group_names = params$group_names,
+    delay_map = params$delay_map,
+    delay_params = params$delay_params,
+    error_params = params$error_params,
+    date_range = params$date_range
+  )
+  
+  expect_identical(sim_result, sim_result2)
+  expect_equal(check_n_per_group(sim_result$true_data), params$n_per_group)
+  expect_equal(check_n_per_group(sim_result$observed_data), params$n_per_group)
+  expect_equal(check_n_per_group(sim_result$error_indicators), 
+               params$n_per_group)
+  
+  ## uneven group sizes
+  n_per_group <- c(10, 20, 30, 40)
+  sim_result3 <- simulate_data(
+    n_per_group = n_per_group,
+    group_names = params$group_names,
+    delay_map = params$delay_map,
+    delay_params = params$delay_params,
+    error_params = params$error_params,
+    date_range = params$date_range
+  )
+  expect_equal(nrow(sim_result3$true_data), sum(n_per_group))
+  expect_equal(nrow(sim_result3$observed_data), sum(n_per_group))
+  expect_equal(nrow(sim_result3$error_indicators), sum(n_per_group))
+  expect_equal(check_n_per_group(sim_result3$true_data), n_per_group)
+  expect_equal(check_n_per_group(sim_result3$observed_data), n_per_group)
+  expect_equal(check_n_per_group(sim_result3$error_indicators), n_per_group)
+  
+})
