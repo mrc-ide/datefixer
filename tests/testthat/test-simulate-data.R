@@ -44,8 +44,7 @@ test_that("simulate_data returns correct structure and dimensions", {
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    date_range = date_range,
-    simul_error = TRUE
+    date_range = date_range
   )
 
   expect_type(sim_result, "list")
@@ -72,8 +71,7 @@ test_that("error_params as expected in simulated data", {
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    date_range = date_range,
-    simul_error = TRUE
+    date_range = date_range
   )
   
   # just the date columns from the true data and error indicators
@@ -124,8 +122,7 @@ test_that("simulate_data handles numeric groups correctly", {
     delay_map = numeric_delay_map,
     delay_params = numeric_delay_params,
     error_params = error_params,
-    date_range = date_range,
-    simul_error = TRUE
+    date_range = date_range
   )
   
   expect_type(sim_result$true_data$group, "double")

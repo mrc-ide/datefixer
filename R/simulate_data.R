@@ -113,8 +113,8 @@ simulate_true_data <- function(n_per_group, group_names,
   }
   
   groups_delay_map <- sort(unique(unlist(delay_map$group)))
-  is_same_groups <- length(groups_data) == length(groups_delay_map) &&
-    all(groups_data == groups_delay_map)
+  is_same_groups <- length(group_names) == length(groups_delay_map) &&
+    all(group_names == groups_delay_map)
   if (!is_same_groups) {
     cli::cli_abort(
       c("Groups in 'group_names' do not match those in 'delay_map'",
