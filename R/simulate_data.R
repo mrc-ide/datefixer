@@ -3,17 +3,15 @@
 #' Simulate a dataset with true dates, observed dates and error indicators
 #'
 #' @param n_per_group Vector of number of individuals to simulate in each group.
+#' @param group_names A character or numeric vector of names for the groups
+#'  being simulated.
 #' @param delay_map A data frame that defines the delays between events. It must
 #'   contain the columns `from` (character), `to` (character), and `group` (list
-#'   of numeric group IDs).
-#' @param delay_params A data frame containing the parameters (`delay_mean`,
-#'  `delay_cv`) for each delay. Consider combining delay_map and delay_params?
+#'   of numeric or character group IDs).
+#' @param delay_params A data frame containing the parameters (`mean_delay`,
+#'  `cv_delay`) for each delay. Consider combining delay_map and delay_params?
 #' @param error_params A list containing `prop_missing_data` and `prob_error`.
 #' @param date_range A vector of two integer dates for the simulation range.
-#' @param simul_error Boolean. If TRUE, simulates missing and erroneous data.
-#' @param true_data Optional dataframe containing the true, unobserved dates.
-#'  If supplied, used as the ground truth for simulating observed dates and
-#'  errors. If 'NULL', the true data is generated internally.
 #'
 #' @importFrom igraph topo_sort graph_from_data_frame degree
 #' @import dplyr
@@ -32,12 +30,22 @@
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "death", "hospitalisation",
 #'          "discharge", "hospitalisation", "death"),
-#'   group = I(list(1:4, 2, 3, 3, 4, 4))
+#'   group = I(list(
+#'     c("community-alive", "community-dead",
+#'       "hospitalised-alive", "hospitalised-dead"),
+#'     "community-dead",
+#'     "hospitalised-alive",
+#'     "hospitalised-alive", 
+#'     "hospitalised-dead",
+#'     "hospitalised-dead"
+#'   ))
 #' )
-#'
+#' 
 #' # Define the delay parameters data frame
 #' delay_params <- data.frame(
-#'   group = c(1:4, 2, 3, 3, 4, 4),
+#'   group = c("community-alive", "community-dead", "hospitalised-alive",
+#'             "hospitalised-dead", "community-dead", "hospitalised-alive",
+#'             "hospitalised-alive", "hospitalised-dead", "hospitalised-dead"),
 #'   from = c("onset", "onset", "onset", "onset", "onset", "onset",
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "report", "report", "report", "death", "hospitalisation",
@@ -48,6 +56,8 @@
 #'
 #' # Define other parameters
 #' n_per_group <- rep(10, length(unique(delay_params$group)))
+#' group_names <- c("community-alive", "community-dead", "hospitalised-alive",
+#'             "hospitalised-dead")
 #' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
 #' date_range <- as.integer(as.Date(c("2025-03-01", "2025-09-01")))
 #'
@@ -55,11 +65,11 @@
 #' set.seed(1)
 #' sim_result <- simulate_data(
 #'   n_per_group = n_per_group,
+#'   group_names = group_names,
 #'   delay_map = delay_map,
 #'   delay_params = delay_params,
 #'   error_params = error_params,
-#'   date_range = date_range,
-#'   simul_error = TRUE
+#'   date_range = date_range
 #' )
 #'
 #' sim_result$true_data
@@ -67,46 +77,17 @@
 #' sim_result$error_indicators # true error indicators
 #'
 simulate_data <- function(n_per_group,
+                          group_names,
                           delay_map,
                           delay_params,
                           error_params,
-                          date_range,
-                          simul_error = FALSE,
-                          true_data = NULL) {
+                          date_range) {
   
-  if (is.null(true_data)) {
-  true_data <- simulate_true_data(n_per_group, delay_map,
+  true_data <- simulate_true_data(n_per_group, group_names, delay_map,
                                   delay_params, date_range)
-  }
   
-  # Simulate observation errors
-  observed_data <- NULL
-  error_indicators <- NULL
-
-  if (simul_error) {
-    error_results <- add_observation_errors(true_data,
-                                            error_params,
-                                            date_range)
-    observed_data <- error_results$observed_data
-    error_indicators <- error_results$error_indicators
-  }
-
-    if (!simul_error) {
-      # If no error simulation, 'observed_data' is just the rounded 'true_data'
-      observed_data <- true_data
-      date_cols <- setdiff(names(observed_data), c("id", "group"))
-      
-      for (col in date_cols) {
-        observed_data[[col]] <- as.Date(floor(true_data[[col]]),
-                                        origin = "1970-01-01")
-      }
-    }
-
-  return(list(
-    true_data = true_data,
-    observed_data = observed_data,
-    error_indicators = error_indicators
-  ))
+  simulate_observation_errors(true_data, error_params, date_range)
+  
 }
 
 
@@ -116,14 +97,34 @@ simulate_data <- function(n_per_group,
 #' @importFrom stats rgamma
 #' @importFrom igraph graph_from_data_frame topo_sort degree
 #' @export
-simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range) {
-
-  group_names <- unique(delay_params$group)
+simulate_true_data <- function(n_per_group, group_names,
+                               delay_map, delay_params, date_range) {
   
-  n_groups <- length(n_per_group)
+  # Handle single n_per_group for all groups
+  if (length(n_per_group) == 1) {
+    n_per_group <- rep(n_per_group, length(group_names))
+  }
+  
+  if (length(n_per_group) != length(group_names)) {
+    cli::cli_abort(
+      c("Lengths of 'n_per_group' and 'group_names' do not match",
+        i = "length of 'n_per_group' is {squote(length(n_per_group))}",
+        x = "length of 'group_names' is {squote(length(group_names))}"))
+  }
+  
+  groups_delay_map <- sort(unique(unlist(delay_map$group)))
+  is_same_groups <- length(group_names) == length(groups_delay_map) &&
+    all(group_names == groups_delay_map)
+  if (!is_same_groups) {
+    cli::cli_abort(
+      c("Groups in 'group_names' do not match those in 'delay_map'",
+        i = "'data' has: {squote(group_names)}",
+        x = "'delay_map' has: {squote(groups_delay_map)}"))
+  }
+  
   total_indiv <- sum(n_per_group)
-  
   all_event_names <- unique(c(delay_map$from, delay_map$to))
+  
   true_data <- data.frame(id = 1:total_indiv,
                           group = rep(group_names, times = n_per_group),
                           stringsAsFactors = FALSE)
@@ -192,12 +193,18 @@ simulate_true_data <- function(n_per_group, delay_map, delay_params, date_range)
     true_data[i, events_in_group] <- proposed_dates[events_in_group]
     
   }
-  return(true_data)
+  
+  true_data
 }
 
 
-## Create error_indicators using error_params
-add_observation_errors <- function(true_data, error_params, date_range) {
+#' Add observation errors
+#' @description Simulate observed data incorporating observation error from true
+#'    data
+#' @inheritParams simulate_data
+#' @param true_data Dataframe containing the true, unobserved dates.
+#' @export
+simulate_observation_errors <- function(true_data, error_params, date_range) {
 
   observed_data <- true_data
   error_indicators <- true_data
@@ -276,8 +283,9 @@ add_observation_errors <- function(true_data, error_params, date_range) {
     }
   }
   
-  return(list(observed_data = observed_data,
-              error_indicators = error_indicators))
+  list(true_data = true_data,
+       observed_data = observed_data,
+       error_indicators = error_indicators)
 }
 
 

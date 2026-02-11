@@ -147,7 +147,7 @@ test_that("data and delays are validated correctly", {
 
 
 test_that("data and delays are validated correctly without groups", {
-  toy <- toy_model()
+  toy <- toy_model(named_groups = FALSE)
   data <- toy$data$observed_data
   delay_map <- toy$delay_map
   
@@ -190,7 +190,7 @@ test_that("data and delays are validated correctly without groups", {
 
 
 test_that("Error when data and delay_map have different groups", {
-  toy <- toy_model()
+  toy <- toy_model(named_groups = FALSE)
   data <- toy$data$observed_data
   delay_map <- toy$delay_map
 
