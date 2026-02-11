@@ -33,8 +33,7 @@ toy_model <- function(control = mcmc_control()) {
     delay_map = delay_map,
     delay_params = delay_params,
     error_params = error_params,
-    date_range = date_range,
-    simul_error = TRUE
+    date_range = date_range
   )
   
   ## setup model
