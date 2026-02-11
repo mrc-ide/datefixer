@@ -86,7 +86,7 @@ simulate_data <- function(n_per_group,
   true_data <- simulate_true_data(n_per_group, group_names, delay_map,
                                   delay_params, date_range)
   
-  add_observation_errors(true_data, error_params, date_range)
+  simulate_observation_errors(true_data, error_params, date_range)
   
 }
 
@@ -204,7 +204,7 @@ simulate_true_data <- function(n_per_group, group_names,
 #' @inheritParams simulate_data
 #' @param true_data Dataframe containing the true, unobserved dates.
 #' @export
-add_observation_errors <- function(true_data, error_params, date_range) {
+simulate_observation_errors <- function(true_data, error_params, date_range) {
 
   observed_data <- true_data
   error_indicators <- true_data
