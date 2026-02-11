@@ -44,7 +44,13 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">simulate_true_data</span><span class="op">(</span><span class="va">n_per_group</span>, <span class="va">delay_map</span>, <span class="va">delay_params</span>, <span class="va">date_range</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">simulate_true_data</span><span class="op">(</span></span>
+<span>  <span class="va">n_per_group</span>,</span>
+<span>  <span class="va">group_names</span>,</span>
+<span>  <span class="va">delay_map</span>,</span>
+<span>  <span class="va">delay_params</span>,</span>
+<span>  <span class="va">date_range</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -55,15 +61,20 @@
 <dd><p>Vector of number of individuals to simulate in each group.</p></dd>
 
 
+<dt id="arg-group-names">group_names<a class="anchor" aria-label="anchor" href="#arg-group-names"></a></dt>
+<dd><p>A character or numeric vector of names for the groups
+being simulated.</p></dd>
+
+
 <dt id="arg-delay-map">delay_map<a class="anchor" aria-label="anchor" href="#arg-delay-map"></a></dt>
 <dd><p>A data frame that defines the delays between events. It must
 contain the columns <code>from</code> (character), <code>to</code> (character), and <code>group</code> (list
-of numeric group IDs).</p></dd>
+of numeric or character group IDs).</p></dd>
 
 
 <dt id="arg-delay-params">delay_params<a class="anchor" aria-label="anchor" href="#arg-delay-params"></a></dt>
-<dd><p>A data frame containing the parameters (<code>delay_mean</code>,
-<code>delay_cv</code>) for each delay. Consider combining delay_map and delay_params?</p></dd>
+<dd><p>A data frame containing the parameters (<code>mean_delay</code>,
+<code>cv_delay</code>) for each delay. Consider combining delay_map and delay_params?</p></dd>
 
 
 <dt id="arg-date-range">date_range<a class="anchor" aria-label="anchor" href="#arg-date-range"></a></dt>
