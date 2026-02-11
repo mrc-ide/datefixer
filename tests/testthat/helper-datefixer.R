@@ -47,8 +47,8 @@ toy_model_params <- function(named_groups = TRUE) {
        date_range = date_range)
 }
 
-toy_model <- function(control = mcmc_control()) {
-  params <- toy_model_params()
+toy_model <- function(named_groups = TRUE, control = mcmc_control()) {
+  params <- toy_model_params(named_groups)
   
   # Run simulation
   sim_result <- simulate_data(

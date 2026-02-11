@@ -115,7 +115,7 @@ test_that("individual delay log-likelihood calculated correctly", {
 
 test_that("log-likelihood aggregates correctly", {
   control <- mcmc_control()
-  toy <- toy_model(control)
+  toy <- toy_model(control = control)
   model <- toy$model
   data <- toy$data
   delay_map <- toy$delay_map
