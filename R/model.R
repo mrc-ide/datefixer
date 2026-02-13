@@ -144,6 +144,7 @@ validate_groups <- function(data, delay_map) {
 make_model_info <- function(delay_map, dates) {
   delay_from <- match(delay_map$from, dates)
   delay_to <- match(delay_map$to, dates)
+  delay_distribution <- delay_map$distribution
   
   g <- sort(unique(unlist(delay_map$group)))
   
@@ -199,6 +200,7 @@ make_model_info <- function(delay_map, dates) {
   
   list(delay_from = delay_from,
        delay_to = delay_to,
+       delay_distribution = delay_distribution,
        is_delay_in_group = is_delay_in_group,
        is_date_in_delay = is_date_in_delay,
        is_date_in_group = is_date_in_group,
@@ -298,6 +300,7 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
                                        cv_delays,
                                        model_info$delay_from,
                                        model_info$delay_to,
+                                       model_info$delay_distribution,
                                        model_info$is_delay_in_group[, i])
   }
   
@@ -309,6 +312,7 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
 #' @importFrom stats dgamma
 datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
                                              cv_delays, delay_from, delay_to,
+                                             delay_distribution,
                                              is_delay_in_group) {
   is_vec <- is.vector(estimated_dates)
   if (is_vec) {
@@ -317,17 +321,19 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   
   group_size <- nrow(estimated_dates)
   
-  shape <- (1 / cv_delays[is_delay_in_group])^2
-  rate <- shape / mean_delays[is_delay_in_group]
+  group_means <- mean_delays[is_delay_in_group]
+  group_cvs <- cv_delays[is_delay_in_group]
+  group_distributions <- delay_distribution[is_delay_in_group]
   
   delay_values <- estimated_dates[, delay_to[is_delay_in_group], drop = FALSE] -
     estimated_dates[, delay_from[is_delay_in_group], drop = FALSE]
   
   ll <- array(0, c(group_size, length(is_delay_in_group)))
   ll[, is_delay_in_group] <- 
-    vapply(seq_along(shape),
+    vapply(seq_along(group_means),
            function(i) {
-             dgamma(delay_values[, i], shape[[i]], rate = rate[[i]], log = TRUE)
+             log_density_delay(delay_values[, i], group_means[[i]], 
+                               group_cvs[[i]], group_distributions[[i]])
            },
            numeric(group_size))
   
@@ -336,6 +342,26 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   }
   
   ll
+}
+
+
+log_density_delay <- function(values, mean, cv, distribution) {
+  
+  if (distribution == "gamma") {
+    shape <- (1 / cv)^2
+    rate <- shape / mean
+    
+    d <- dgamma(values, shape, rate = rate, log = TRUE)
+  } else if (distribution == "log-normal") {
+    sdlog <- sqrt(log(cv^2 + 1))
+    meanlog <- log(mean) - sdlog^2 / 2
+    
+    d <- dlnorm(values, meanlog, sdlog, log = TRUE)
+  } else {
+    stop("distribution unsupported")
+  }
+  
+  d
 }
 
 

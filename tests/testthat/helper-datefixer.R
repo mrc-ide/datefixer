@@ -50,6 +50,8 @@ toy_model_params <- function(named_groups = TRUE) {
 toy_model <- function(named_groups = TRUE, control = mcmc_control()) {
   params <- toy_model_params(named_groups)
   
+  params$delay_map$distribution <- "log-normal"
+  
   # Run simulation
   sim_result <- simulate_data(
     n_per_group = params$n_per_group,

@@ -172,14 +172,12 @@ sample_from_delay <- function(i, estimated_dates, group, model_info,
     sign <- 1
   }
   
-  ## Sample a delay from the marginal posterior (gamma distribution)
-  mean_delay <- model_info$delay_mean[selected_delay]
-  cv_delay <- model_info$delay_cv[selected_delay]
+  ## Sample a delay from the marginal posterior
+  mean <- model_info$delay_mean[selected_delay]
+  cv <- model_info$delay_cv[selected_delay]
+  distribution <- model_info$delay_distribution[selected_delay]
   
-  shape <- 1 / (cv_delay^2)
-  rate <- shape / mean_delay
-  
-  sampled_delay <- monty::monty_random_gamma_rate(shape, rate, rng)
+  sampled_delay <- sample_from_delay1(mean, cv, distribution, rng)
   
   ## Calculate proposed date based on the sampled delay
   proposed_date <- other_date + sign * sampled_delay
@@ -188,6 +186,24 @@ sample_from_delay <- function(i, estimated_dates, group, model_info,
   
 }
 
+
+sample_from_delay1 <- function(mean, cv, distribution, rng) {
+  if (distribution == "gamma") {
+    shape <- (1 / cv)^2
+    rate <- shape / mean
+    
+    x <- monty::monty_random_gamma_rate(shape, rate, rng)
+  } else if (distribution == "log-normal") {
+    sdlog <- sqrt(log(cv^2 + 1))
+    meanlog <- log(mean) - sdlog^2 / 2
+    
+    x <- monty::monty_random_log_normal(meanlog, sdlog, rng)
+  } else {
+    stop("distribution unsupported")
+  }
+  
+  x
+}
 
 
 # propose new estimated dates for date indices in to_update
@@ -248,7 +264,7 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   ll_delays_new <- datefixer_log_likelihood_delays1(
     augmented_data_new$estimated_dates, model_info$delay_mean, 
     model_info$delay_cv, model_info$delay_from, model_info$delay_to,
-    is_delay_in_group)
+    model_info$delay_distribution, is_delay_in_group)
   
   if (any(is.infinite(ll_delays_new))) {
     ## Covering two cases here:
@@ -263,7 +279,8 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   ## current delays log likelihood
   ll_delays_current <- datefixer_log_likelihood_delays1(
     augmented_data$estimated_dates, model_info$delay_mean, model_info$delay_cv,
-    model_info$delay_from, model_info$delay_to, is_delay_in_group)
+    model_info$delay_from, model_info$delay_to, model_info$delay_distribution,
+    is_delay_in_group)
   
   ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
   
