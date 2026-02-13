@@ -5,11 +5,10 @@
 #' @param n_per_group Vector of number of individuals to simulate in each group.
 #' @param group_names A character or numeric vector of names for the groups
 #'  being simulated.
-#' @param delay_map A data frame that defines the delays between events. It must
-#'   contain the columns `from` (character), `to` (character), and `group` (list
-#'   of numeric or character group IDs).
-#' @param delay_params A data frame containing the parameters (`mean_delay`,
-#'  `cv_delay`) for each delay. Consider combining delay_map and delay_params?
+#' @param delay_params A data frame that defines the delays between events, and
+#'   their distributions and parameters. It must contain the columns `from`
+#'   (character), `to` (character), `group` (list of numeric or character group
+#'   IDs), `distribution` (character), `mean` (numeric) and `cv` (numeric)ams?
 #' @param error_params A list containing `prop_missing_data` and `prob_error`.
 #' @param date_range A vector of two integer dates for the simulation range.
 #'
@@ -24,8 +23,8 @@
 #' @export
 #'
 #' @examples
-#' # Define the delay_map data frame
-#' delay_map <- data.frame(
+#' # Define the delay_params data frame
+#' delay_params <- data.frame(
 #'   from = c("onset", "onset", "onset",
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "death", "hospitalisation",
@@ -37,23 +36,13 @@
 #'     "hospitalised-alive",
 #'     "hospitalised-alive", 
 #'     "hospitalised-dead",
-#'     "hospitalised-dead"
-#'   ))
+#'     "hospitalised-dead")),
+#'   distribution = c("gamma", "gamma", "gamma", "gamma",
+#'                    "log-normal", "log-normal")
+#'   mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+#'   cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 #' )
 #' 
-#' # Define the delay parameters data frame
-#' delay_params <- data.frame(
-#'   group = c("community-alive", "community-dead", "hospitalised-alive",
-#'             "hospitalised-dead", "community-dead", "hospitalised-alive",
-#'             "hospitalised-alive", "hospitalised-dead", "hospitalised-dead"),
-#'   from = c("onset", "onset", "onset", "onset", "onset", "onset",
-#'            "hospitalisation", "onset", "hospitalisation"),
-#'   to = c("report", "report", "report", "report", "death", "hospitalisation",
-#'          "discharge", "hospitalisation", "death"),
-#'   delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-#'   delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
-#' )
-#'
 #' # Define other parameters
 #' n_per_group <- rep(10, length(unique(delay_params$group)))
 #' group_names <- c("community-alive", "community-dead", "hospitalised-alive",
@@ -66,7 +55,6 @@
 #' sim_result <- simulate_data(
 #'   n_per_group = n_per_group,
 #'   group_names = group_names,
-#'   delay_map = delay_map,
 #'   delay_params = delay_params,
 #'   error_params = error_params,
 #'   date_range = date_range
@@ -78,12 +66,11 @@
 #'
 simulate_data <- function(n_per_group,
                           group_names,
-                          delay_map,
                           delay_params,
                           error_params,
                           date_range) {
   
-  true_data <- simulate_true_data(n_per_group, group_names, delay_map,
+  true_data <- simulate_true_data(n_per_group, group_names,
                                   delay_params, date_range)
   
   simulate_observation_errors(true_data, error_params, date_range)
@@ -98,7 +85,7 @@ simulate_data <- function(n_per_group,
 #' @importFrom igraph graph_from_data_frame topo_sort degree
 #' @export
 simulate_true_data <- function(n_per_group, group_names,
-                               delay_map, delay_params, date_range) {
+                               delay_params, date_range) {
   
   # Handle single n_per_group for all groups
   if (length(n_per_group) == 1) {
@@ -112,18 +99,18 @@ simulate_true_data <- function(n_per_group, group_names,
         x = "length of 'group_names' is {squote(length(group_names))}"))
   }
   
-  groups_delay_map <- sort(unique(unlist(delay_map$group)))
-  is_same_groups <- length(group_names) == length(groups_delay_map) &&
-    all(group_names == groups_delay_map)
+  groups_delay_params <- sort(unique(unlist(delay_params$group)))
+  is_same_groups <- length(group_names) == length(groups_delay_params) &&
+    all(group_names == groups_delay_params)
   if (!is_same_groups) {
     cli::cli_abort(
-      c("Groups in 'group_names' do not match those in 'delay_map'",
+      c("Groups in 'group_names' do not match those in 'delay_params'",
         i = "'data' has: {squote(group_names)}",
-        x = "'delay_map' has: {squote(groups_delay_map)}"))
+        x = "'delay_params' has: {squote(groups_delay_params)}"))
   }
   
   total_indiv <- sum(n_per_group)
-  all_event_names <- unique(c(delay_map$from, delay_map$to))
+  all_event_names <- unique(c(delay_params$from, delay_params$to))
   
   true_data <- data.frame(id = 1:total_indiv,
                           group = rep(group_names, times = n_per_group),
@@ -137,7 +124,8 @@ simulate_true_data <- function(n_per_group, group_names,
     
     # Filter the delay map to find rules applicable to the current group
     applicable_delays <-
-      delay_map[sapply(delay_map$group, function(g) current_group %in% g), ]
+      delay_params[sapply(delay_params$group, 
+                          function(g) current_group %in% g), ]
     
     events_in_group <- unique(c(applicable_delays$from, applicable_delays$to))
     event_graph <- graph_from_data_frame(applicable_delays[, c("from", "to")],
@@ -153,7 +141,7 @@ simulate_true_data <- function(n_per_group, group_names,
     while (!valid_dates && attempts < max_attempts) {
       attempts <- attempts + 1
     
-      event_cols <- unique(c(delay_map$from, delay_map$to))
+      event_cols <- unique(c(delay_params$from, delay_params$to))
       
       proposed_dates <- unlist(true_data[i, event_cols])
 
@@ -163,17 +151,13 @@ simulate_true_data <- function(n_per_group, group_names,
     }
     
     for (to_event in setdiff(event_order, root_events)) {
-      rule <- subset(applicable_delays, to == to_event)
-      from_event <- rule$from
-      params <- subset(
-        delay_params,
-        from == from_event & to == to_event & group == current_group
-      )
+      k <- which(applicable_delays$to == to_event)
+      from_event <- applicable_delays$from[k]
       
-      # Sample the delay
-      shape <- (1 / params$delay_cv)^2
-      rate <- shape / params$delay_mean
-      delay <- rgamma(1, shape = shape, rate = rate)
+      delay <- simulate_sample_delay(applicable_delays$mean[k], 
+                                     applicable_delays$cv[k],
+                                     applicable_delays$distribution[k])
+        
       proposed_dates[to_event] <- proposed_dates[from_event] + delay
     }
     
@@ -196,7 +180,6 @@ simulate_true_data <- function(n_per_group, group_names,
   
   true_data
 }
-
 
 #' Add observation errors
 #' @description Simulate observed data incorporating observation error from true
@@ -289,3 +272,21 @@ simulate_observation_errors <- function(true_data, error_params, date_range) {
 }
 
 
+simulate_sample_delay <- function(mean, cv, distribution) {
+  if (distribution == "gamma") {
+    shape <- (1 / cv)^2
+    rate <- shape / mean
+    
+    x <- rgamma(1, shape, rate = rate)
+  } else if (distribution == "log-normal") {
+    sdlog <- sqrt(log(cv^2 + 1))
+    meanlog <- log(mean) - sdlog^2 / 2
+    
+    x <- rlnorm(1, meanlog, sdlog)
+  } else {
+    stop("distribution unsupported")
+  }
+  
+  x
+}
+  

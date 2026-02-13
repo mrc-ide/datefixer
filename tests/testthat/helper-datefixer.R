@@ -20,19 +20,15 @@ toy_model_params <- function(named_groups = TRUE) {
       group_names[3],   ## hospitalised-alive
       group_names[4],   ## hospitalised-dead
       group_names[4]    ## hospitalised-dead
-    ))
+    )),
+    distribution = c("gamma", "gamma", "gamma", "gamma",
+                     "log-normal", "log-normal")
   )
       
   # Define the delay parameters data frame
-  delay_params <- data.frame(
-    group = unlist(delay_map$group),
-    from = c("onset", "onset", "onset", "onset", "onset", "onset",
-             "hospitalisation", "onset", "hospitalisation"),
-    to = c("report", "report", "report", "report", "death", "hospitalisation",
-           "discharge", "hospitalisation", "death"),
-    delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-    delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
-  )
+  delay_params <- delay_map
+  delay_params$mean <- c(10, 15, 7, 20, 7, 12)
+  delay_params$cv <- c(0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
   
   # Define other parameters
   n_per_group <- rep(10, length(unique(delay_params$group)))
@@ -50,13 +46,10 @@ toy_model_params <- function(named_groups = TRUE) {
 toy_model <- function(named_groups = TRUE, control = mcmc_control()) {
   params <- toy_model_params(named_groups)
   
-  params$delay_map$distribution <- "log-normal"
-  
   # Run simulation
   sim_result <- simulate_data(
     n_per_group = params$n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
     delay_params = params$delay_params,
     error_params = params$error_params,
     date_range = params$date_range
