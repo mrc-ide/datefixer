@@ -2,8 +2,8 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
                                   model_info, date_range, control, rng) {
   
   n_delays <- length(model_info$delay_from)
-  model_info$delay_mean <- unname(pars[paste0("mean_delay", seq_len(n_delays))])
-  model_info$delay_cv <- unname(pars[paste0("cv_delay", seq_len(n_delays))])
+  model_info$delay_mean <- unname(pars[paste0("delay_mean", seq_len(n_delays))])
+  model_info$delay_cv <- unname(pars[paste0("delay_cv", seq_len(n_delays))])
   prob_error <- pars[["prob_error"]]
 
   for (i in seq_len(nrow(observed_dates))) {

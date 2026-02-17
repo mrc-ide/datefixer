@@ -23,8 +23,8 @@ test_that("update_prob_error updates correctly", {
   parameters <- model$parameters
   pars <- numeric(length(parameters))
   pars[parameters == "prob_error"] <- 0.1
-  pars[grepl("mean_delay", parameters)] <- 7
-  pars[grepl("cv_delay", parameters)] <- 0.2
+  pars[grepl("delay_mean", parameters)] <- 7
+  pars[grepl("delay_cv", parameters)] <- 0.2
   
   rng <- monty::monty_rng_create(1L)
   

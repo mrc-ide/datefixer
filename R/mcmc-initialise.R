@@ -156,8 +156,8 @@ initialise_augmented_data <- function(observed_dates, pars, groups, model_info,
   delay_map <- data.frame(from = model_info$delay_from,
                           to = model_info$delay_to)
   
-  delay_map$delay_mean <- pars[paste0("mean_delay", seq_len(nrow(delay_map)))]
-  delay_map$delay_cv <- pars[paste0("cv_delay", seq_len(nrow(delay_map)))]
+  delay_map$delay_mean <- pars[paste0("delay_mean", seq_len(nrow(delay_map)))]
+  delay_map$delay_cv <- pars[paste0("delay_cv", seq_len(nrow(delay_map)))]
   init_settings <- list(quantile_range = c(control$lower_quantile,
                                            control$upper_quantile))
   

@@ -26,8 +26,8 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
   n_delays <- nrow(delay_map)
   delay_ids <- seq_len(n_delays)
   parameters <- c("prob_error",
-                  paste0("mean_delay", delay_ids),
-                  paste0("cv_delay", delay_ids))
+                  paste0("delay_mean", delay_ids),
+                  paste0("delay_cv", delay_ids))
   
   domain <- cbind(rep(0, 1 + 2 * n_delays), c(1, rep(Inf, 2 * n_delays)))
   
@@ -68,10 +68,10 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
 ##' @param prob_error_shape2 The second shape parameter of the beta prior
 ##'   distribution for the probability of error
 ##'
-##' @param mean_delay_scale The scale parameter (mean) of the exponential prior
+##' @param delay_mean_scale The scale parameter (mean) of the exponential prior
 ##'   distribution for the means of the delays
 ##'
-##' @param cv_delay_scale The scale parameter (mean) of the exponential prior
+##' @param delay_cv_scale The scale parameter (mean) of the exponential prior
 ##'   distribution for the coefficients of variations of the delays
 ##'
 ##' @return List of hyperparameters
@@ -79,12 +79,12 @@ datefixer_model <- function(data, delay_map, hyperparameters, control) {
 ##' @export
 datefixer_hyperparameters <- function(prob_error_shape1 = 1,
                                       prob_error_shape2 = 1,
-                                      mean_delay_scale = 10,
-                                      cv_delay_scale = 10) {
+                                      delay_mean_scale = 10,
+                                      delay_cv_scale = 10) {
   list(prob_error_shape1 = prob_error_shape1,
        prob_error_shape2 = prob_error_shape2,
-       mean_delay_scale = mean_delay_scale,
-       cv_delay_scale = cv_delay_scale)
+       delay_mean_scale = delay_mean_scale,
+       delay_cv_scale = delay_cv_scale)
 }
 
 
@@ -236,15 +236,15 @@ make_prior <- function(parameters, hyperparameters, domain) {
           dbeta(pars[["prob_error"]], hyperparameters$prob_error_shape1, 
                 hyperparameters$prob_error_shape2, log = TRUE)
         
-        lp_mean_delays <-
-          dexp(pars[grepl("^mean_delay", names(pars))], 
-               1 / hyperparameters$mean_delay_scale, log = TRUE)
+        lp_delay_means <-
+          dexp(pars[grepl("^delay_mean", names(pars))], 
+               1 / hyperparameters$delay_mean_scale, log = TRUE)
         
-        lp_cv_delays <-
-          dexp(pars[grepl("^cv_delay", names(pars))], 
-               1 / hyperparameters$cv_delay_scale, log = TRUE)
+        lp_delay_cvs <-
+          dexp(pars[grepl("^delay_cv", names(pars))], 
+               1 / hyperparameters$delay_cv_scale, log = TRUE)
         
-        lp_prob_error + sum(lp_mean_delays) + sum(lp_cv_delays)
+        lp_prob_error + sum(lp_delay_means) + sum(lp_delay_cvs)
         
       },
       domain = domain
@@ -265,8 +265,8 @@ datefixer_log_likelihood <- function(pars, groups, model_info, date_range,
   ll_delays <- 
     datefixer_log_likelihood_delays(augmented_data$estimated_dates,
                                     groups,
-                                    pars[paste0("mean_delay", delays)],
-                                    pars[paste0("cv_delay", delays)],
+                                    pars[paste0("delay_mean", delays)],
+                                    pars[paste0("delay_cv", delays)],
                                     model_info)
   
   
@@ -288,16 +288,16 @@ datefixer_log_likelihood_errors <- function(prob_error, error_indicators,
 }
 
 
-datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays,
-                                            cv_delays, model_info) {
+datefixer_log_likelihood_delays <- function(estimated_dates, groups, delay_means,
+                                            delay_cvs, model_info) {
   
-  ll_delays <- array(0, c(length(groups), length(mean_delays)))
+  ll_delays <- array(0, c(length(groups), length(delay_means)))
   for (i in unique(groups)) {
     group_i <- groups == i
     ll_delays[group_i, ] <- 
       datefixer_log_likelihood_delays1(estimated_dates[group_i, , drop = FALSE],
-                                       mean_delays,
-                                       cv_delays,
+                                       delay_means,
+                                       delay_cvs,
                                        model_info$delay_from,
                                        model_info$delay_to,
                                        model_info$delay_distribution,
@@ -309,8 +309,8 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
 }
 
 
-datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
-                                             cv_delays, delay_from, delay_to,
+datefixer_log_likelihood_delays1 <- function(estimated_dates, delay_means,
+                                             delay_cvs, delay_from, delay_to,
                                              delay_distribution,
                                              is_delay_in_group) {
   is_vec <- is.vector(estimated_dates)
@@ -320,8 +320,8 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
   
   group_size <- nrow(estimated_dates)
   
-  group_means <- mean_delays[is_delay_in_group]
-  group_cvs <- cv_delays[is_delay_in_group]
+  group_means <- delay_means[is_delay_in_group]
+  group_cvs <- delay_cvs[is_delay_in_group]
   group_distributions <- delay_distribution[is_delay_in_group]
   
   delay_values <- estimated_dates[, delay_to[is_delay_in_group], drop = FALSE] -
