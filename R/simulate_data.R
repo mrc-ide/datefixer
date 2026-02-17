@@ -274,19 +274,14 @@ simulate_observation_errors <- function(true_data, error_params, date_range) {
 
 #' @importFrom stats rgamma rlnorm
 simulate_sample_delay <- function(mean, cv, distribution) {
+  
+  params <- convert_to_distribution_params(mean, cv, distribution)
+  
   if (distribution == "gamma") {
-    shape <- (1 / cv)^2
-    rate <- shape / mean
-    
-    x <- rgamma(1, shape, rate = rate)
+    x <- rgamma(1, params$shape, rate = params$rate)
   } else if (distribution == "log-normal") {
-    sdlog <- sqrt(log(cv^2 + 1))
-    meanlog <- log(mean) - sdlog^2 / 2
-    
-    x <- rlnorm(1, meanlog, sdlog)
-  } else {
-    stop("distribution unsupported")
-  }
+    x <- rlnorm(1, params$meanlog, params$sdlog)
+  } 
   
   x
 }
