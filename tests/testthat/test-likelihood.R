@@ -24,6 +24,23 @@ test_that("error log-likelihood calculated correctly", {
     ll_expected)
 })
 
+
+test_that("log density delay calculated correctly", {
+  mean <- 3
+  cv <- 2
+  
+  ## gamma distribution
+  params <- convert_to_distribution_params(mean, cv, "gamma")
+  expect_equal(log_density_delay(8, mean, cv, "gamma"),
+               dgamma(8, params$shape, rate = params$rate, log = TRUE))
+  
+  ## gamma distribution
+  params <- convert_to_distribution_params(mean, cv, "log-normal")
+  expect_equal(log_density_delay(8, mean, cv, "log-normal"),
+               dlnorm(8, params$meanlog, params$sdlog, log = TRUE))
+})
+
+
 test_that("individual delay log-likelihood calculated correctly", {
   
   delay_map <- data.frame(

@@ -268,3 +268,27 @@ test_that("date range is calculated correctly", {
                c(date_to_int("2025-02-01"), date_to_int("2025-10-01") + 1))
 })
 
+
+test_that("convert_to_distribution_params converts correctly", {
+  
+  mean <- 3
+  cv <- 2
+  
+  ## gamma distribution
+  params <- convert_to_distribution_params(mean, cv, "gamma")
+  expect_equal(params$shape, 1 / cv^2)
+  expect_equal(params$rate, 1 / (mean * cv^2))
+  expect_equal(params$shape / params$rate, mean)
+  expect_equal(1 / sqrt(params$shape), cv)
+  
+  ## log-normal distribution
+  params <- convert_to_distribution_params(mean, cv, "log-normal")
+  expect_equal(params$sdlog, sqrt(log(cv^2 + 1)))
+  expect_equal(params$meanlog, log(mean) - log(cv^2 + 1) / 2)
+  expect_equal(exp(params$meanlog + params$sdlog^2 / 2), mean)
+  expect_equal(sqrt(exp(params$sdlog^2) - 1), cv)
+  
+  ## unsupported distribution
+  expect_error(convert_to_distribution_params(mean, cv, "normal"),
+               'Distribution "normal" is not supported')
+})

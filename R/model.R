@@ -374,7 +374,7 @@ convert_to_distribution_params <- function(mean, cv, distribution) {
     params <- list(meanlog = meanlog,
                    sdlog = sdlog)
   } else {
-    stop("distribution unsupported")
+    stop(sprintf('Distribution "%s" is not supported', distribution))
   }
   
   params
