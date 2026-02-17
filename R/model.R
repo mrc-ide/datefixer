@@ -347,21 +347,37 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
 
 log_density_delay <- function(values, mean, cv, distribution) {
   
+  params <- convert_to_distribution_params(mean, cv, distribution)
+  
+  if (distribution == "gamma") {
+    d <- dgamma(values, params$shape, rate = params$rate, log = TRUE)
+  } else if (distribution == "log-normal") {
+    d <- dlnorm(values, params$meanlog, params$sdlog, log = TRUE)
+  }
+  
+  d
+}
+
+
+convert_to_distribution_params <- function(mean, cv, distribution) {
+  
   if (distribution == "gamma") {
     shape <- (1 / cv)^2
     rate <- shape / mean
     
-    d <- dgamma(values, shape, rate = rate, log = TRUE)
+    params <- list(shape = shape,
+                   rate = rate)
   } else if (distribution == "log-normal") {
     sdlog <- sqrt(log(cv^2 + 1))
     meanlog <- log(mean) - sdlog^2 / 2
     
-    d <- dlnorm(values, meanlog, sdlog, log = TRUE)
+    params <- list(meanlog = meanlog,
+                   sdlog = sdlog)
   } else {
     stop("distribution unsupported")
   }
   
-  d
+  params
 }
 
 

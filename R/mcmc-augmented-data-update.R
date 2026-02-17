@@ -188,19 +188,13 @@ sample_from_delay <- function(i, estimated_dates, group, model_info,
 
 
 sample_from_delay1 <- function(mean, cv, distribution, rng) {
+  params <- convert_to_distribution_params(mean, cv, distribution)
+  
   if (distribution == "gamma") {
-    shape <- (1 / cv)^2
-    rate <- shape / mean
-    
-    x <- monty::monty_random_gamma_rate(shape, rate, rng)
+    x <- monty::monty_random_gamma_rate(params$shape, params$rate, rng)
   } else if (distribution == "log-normal") {
-    sdlog <- sqrt(log(cv^2 + 1))
-    meanlog <- log(mean) - sdlog^2 / 2
-    
-    x <- monty::monty_random_log_normal(meanlog, sdlog, rng)
-  } else {
-    stop("distribution unsupported")
-  }
+    x <- monty::monty_random_log_normal(params$meanlog, params$sdlog, rng)
+  } 
   
   x
 }
@@ -348,8 +342,9 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
         is_delay_available
       
       ## error or missing - proposal is based on delay(s)
-      shape <- 1 / (model_info$delay_cv[can_sample_from_delay]^2)
-      rate <- shape / model_info$delay_mean[can_sample_from_delay]
+      delay_cv <- model_info$delay_cv[can_sample_from_delay]
+      delay_mean <- model_info$delay_mean[can_sample_from_delay]
+      delay_distribution <- model_info$delay_distribution[can_sample_from_delay]
       delay_from <- model_info$delay_from[can_sample_from_delay]
       delay_to <- model_info$delay_to[can_sample_from_delay]
       delay_values <- augmented_data$estimated_dates[delay_to] - 
@@ -357,11 +352,13 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
       
       if (sum(can_sample_from_delay) == 1) {
         ## single delay involving date i
-        d[j] <- dgamma(delay_values, shape, rate, log = TRUE)
+        d[j] <- log_density_delay(delay_values, delay_mean, delay_cv,
+                                  delay_distribution)
       } else {
         ## multiple delays involving date i, so delay selected at random
-        d[j] <- log(sum(dgamma(delay_values, shape, rate))) - 
-          log(sum(can_sample_from_delay))
+        d[j] <- log(sum(exp(mapply(log_density_delay, delay_values, delay_mean,
+                           delay_cv, delay_distribution)))) - 
+                      log(sum(can_sample_from_delay))
       }
       
     }
