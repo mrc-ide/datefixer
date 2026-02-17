@@ -343,8 +343,10 @@ test_that("proposal density calculated correctly", {
   model_info$delay_mean <- c(5, 8, 3, 4, 7, 10)
   model_info$delay_cv <- c(0.5, 0.3, 0.2, 0.7, 0.6, 0.9)
   
-  shape <- 1 / model_info$delay_cv^2
-  rate <- shape / model_info$delay_mean
+  params <- 
+    mapply(function(x, y, z) unlist(convert_to_distribution_params(x, y, z)),
+           model_info$delay_mean, model_info$delay_cv,
+           model_info$delay_distribution)
   
   # group 2, 3 dates
   group <- 2
@@ -358,33 +360,37 @@ test_that("proposal density calculated correctly", {
     calc_proposal_density(updated, augmented_data, group, model_info), 0)
   
   ## group 2, updated error death date
-  ## proposal based on delay 2 onset (date 1) to death (date 4)
+  ## proposal based on delay 2 (gamma) onset (date 1) to death (date 4)
   updated <- 4
   d <- dgamma(augmented_data$estimated_dates[4] - 
                 augmented_data$estimated_dates[1],
-              shape = shape[2], rate = rate[2], log = TRUE)
+              shape = params[1, 2], rate = params[2, 2], log = TRUE)
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 2, updated missing onset date 
-  ## based on delay 1, onset (date 1) to report (date 3)
-  ## and delay 2, onset (date 1) to death (date 4)
+  ## based on delay 1 (gamma), onset (date 1) to report (date 3)
+  ## and delay 2 (gamma), onset (date 1) to death (date 4)
   ## the two delays are equally likely to be used
   updated <- 1
   d <- log(sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
                         augmented_data$estimated_dates[1],
-                      shape = shape[c(1, 2)], rate = rate[c(1, 2)]))) - log(2)
+                      shape = params[1, c(1, 2)], 
+                      rate = params[2, c(1, 2)]))) - log(2)
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 2, updated all dates
   ## report (date 3) is correct so has no impact for proposing this
-  ## then onset is proposed based on delay 1, onset (date 1) to report (date 3)
-  ## then death is proposed based on delay 2, onset (date 1) to death (date 4)
+  ## then onset is proposed based on delay 1 (gamma), 
+  ##               onset (date 1) to report (date 3)
+  ## then death is proposed based on delay 2 (gamma),
+  ##               onset (date 1) to death (date 4)
   updated <- c(1, 3, 4)
   d <- sum(dgamma(augmented_data$estimated_dates[c(3, 4)] - 
                     augmented_data$estimated_dates[1],
-                  shape = shape[c(1, 2)], rate = rate[c(1, 2)], log = TRUE))
+                  shape = params[1, c(1, 2)], rate = params[2, c(1, 2)],
+                  log = TRUE))
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
   
@@ -407,23 +413,23 @@ test_that("proposal density calculated correctly", {
     calc_proposal_density(updated, augmented_data, group, model_info), 0)
   
   ## group 4, updated error hospitalisation date 
-  ## based on delay 5, onset (date 1) to hospitalisation (date 2)
-  ## and delay 6, hospitalisation (date 2) to death (date 4)
+  ## based on delay 5 (log-normal), onset (date 1) to hospitalisation (date 2)
+  ## and delay 6 (log-normal), hospitalisation (date 2) to death (date 4)
   ## the two delays are equally likely to be used
   updated <- 2
-  d <- log(sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+  d <- log(sum(dlnorm(augmented_data$estimated_dates[c(2, 4)] - 
                         augmented_data$estimated_dates[c(1, 2)],
-                      shape = shape[c(5, 6)], rate = rate[c(5, 6)]))) - log(2)
+                      meanlog = params[1, c(5, 6)], 
+                      sdlog = params[2, c(5, 6)]))) - log(2)
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
   
   ## group 4, updated missing death date 
-  ## based on delay 6, hospitalisation (date 2) to death (date 4)
-  ## the two delays are equally likely to be used
+  ## based on delay 6 (log-normal), hospitalisation (date 2) to death (date 4)
   updated <- 4
-  d <- dgamma(augmented_data$estimated_dates[4] - 
+  d <- dlnorm(augmented_data$estimated_dates[4] - 
                 augmented_data$estimated_dates[2],
-              shape = shape[6], rate = rate[6], log = TRUE)
+              meanlog = params[1, 6], sdlog = params[2, 6], log = TRUE)
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
   
@@ -431,12 +437,13 @@ test_that("proposal density calculated correctly", {
   ## onset (date 1) and report (date 3) correct so no impact for proposing
   ## then hospitalisation is proposed based on delay 5, onset (date 1) to
   ##    hospitalisation (date 2)
-  ## then death is proposed based on delay 6, hospitalisation (date 2) to
-  ##    death (date 4)
+  ## then death is proposed based on delay 6 (log-normal), hospitalisation
+  ##    (date 2) to death (date 4)
   updated <- c(1, 2, 3, 4)
-  d <- sum(dgamma(augmented_data$estimated_dates[c(2, 4)] - 
+  d <- sum(dlnorm(augmented_data$estimated_dates[c(2, 4)] - 
                     augmented_data$estimated_dates[c(1, 2)],
-                  shape = shape[c(5, 6)], rate = rate[c(5, 6)], log = TRUE))
+                  meanlog = params[1, c(5, 6)], sdlog = params[2, c(5, 6)],
+                  log = TRUE))
   expect_equal(
     calc_proposal_density(updated, augmented_data, group, model_info), d)
 })
@@ -462,6 +469,7 @@ test_that("acceptance probability calculated correctly", {
                                        model_info$delay_cv,
                                        model_info$delay_from, 
                                        model_info$delay_to,
+                                       model_info$delay_distribution,
                                        model_info$is_delay_in_group[, group])
     ll_delays_new <- 
       datefixer_log_likelihood_delays1(augmented_data_new$estimated_dates,
@@ -469,6 +477,7 @@ test_that("acceptance probability calculated correctly", {
                                        model_info$delay_cv,
                                        model_info$delay_from, 
                                        model_info$delay_to,
+                                       model_info$delay_distribution,
                                        model_info$is_delay_in_group[, group])
     
     ll_errors_current <-
