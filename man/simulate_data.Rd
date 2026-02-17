@@ -4,14 +4,7 @@
 \alias{simulate_data}
 \title{Simulate a dataset with true dates, observed dates and error indicators}
 \usage{
-simulate_data(
-  n_per_group,
-  group_names,
-  delay_map,
-  delay_params,
-  error_params,
-  date_range
-)
+simulate_data(n_per_group, group_names, delay_info, error_params, date_range)
 }
 \arguments{
 \item{n_per_group}{Vector of number of individuals to simulate in each group.}
@@ -19,12 +12,10 @@ simulate_data(
 \item{group_names}{A character or numeric vector of names for the groups
 being simulated.}
 
-\item{delay_map}{A data frame that defines the delays between events. It must
-contain the columns \code{from} (character), \code{to} (character), and \code{group} (list
-of numeric or character group IDs).}
-
-\item{delay_params}{A data frame containing the parameters (\code{mean_delay},
-\code{cv_delay}) for each delay. Consider combining delay_map and delay_params?}
+\item{delay_info}{A data frame that defines the delays between events, and
+their distributions and parameters. It must contain the columns \code{from}
+(character), \code{to} (character), \code{group} (list of numeric or character group
+IDs), \code{distribution} (character), \code{mean} (numeric) and \code{cv} (numeric)ams?}
 
 \item{error_params}{A list containing \code{prop_missing_data} and \code{prob_error}.}
 
@@ -38,8 +29,8 @@ A list with three data frames: \code{true_data}, \code{observed_data}, and
 Simulate a dataset with true dates, observed dates and error indicators
 }
 \examples{
-# Define the delay_map data frame
-delay_map <- data.frame(
+# Define the delay_info data frame
+delay_info <- data.frame(
   from = c("onset", "onset", "onset",
            "hospitalisation", "onset", "hospitalisation"),
   to = c("report", "death", "hospitalisation",
@@ -51,25 +42,15 @@ delay_map <- data.frame(
     "hospitalised-alive",
     "hospitalised-alive", 
     "hospitalised-dead",
-    "hospitalised-dead"
-  ))
-)
-
-# Define the delay parameters data frame
-delay_params <- data.frame(
-  group = c("community-alive", "community-dead", "hospitalised-alive",
-            "hospitalised-dead", "community-dead", "hospitalised-alive",
-            "hospitalised-alive", "hospitalised-dead", "hospitalised-dead"),
-  from = c("onset", "onset", "onset", "onset", "onset", "onset",
-           "hospitalisation", "onset", "hospitalisation"),
-  to = c("report", "report", "report", "report", "death", "hospitalisation",
-         "discharge", "hospitalisation", "death"),
-  delay_mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
-  delay_cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
+    "hospitalised-dead")),
+  distribution = c("gamma", "gamma", "gamma", "gamma",
+                   "log-normal", "log-normal")
+  mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
+  cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 )
 
 # Define other parameters
-n_per_group <- rep(10, length(unique(delay_params$group)))
+n_per_group <- rep(10, length(unique(delay_info$group)))
 group_names <- c("community-alive", "community-dead", "hospitalised-alive",
             "hospitalised-dead")
 error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
@@ -80,8 +61,7 @@ set.seed(1)
 sim_result <- simulate_data(
   n_per_group = n_per_group,
   group_names = group_names,
-  delay_map = delay_map,
-  delay_params = delay_params,
+  delay_info = delay_info,
   error_params = error_params,
   date_range = date_range
 )

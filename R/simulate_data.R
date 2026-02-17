@@ -5,7 +5,7 @@
 #' @param n_per_group Vector of number of individuals to simulate in each group.
 #' @param group_names A character or numeric vector of names for the groups
 #'  being simulated.
-#' @param delay_params A data frame that defines the delays between events, and
+#' @param delay_info A data frame that defines the delays between events, and
 #'   their distributions and parameters. It must contain the columns `from`
 #'   (character), `to` (character), `group` (list of numeric or character group
 #'   IDs), `distribution` (character), `mean` (numeric) and `cv` (numeric)ams?
@@ -23,8 +23,8 @@
 #' @export
 #'
 #' @examples
-#' # Define the delay_params data frame
-#' delay_params <- data.frame(
+#' # Define the delay_info data frame
+#' delay_info <- data.frame(
 #'   from = c("onset", "onset", "onset",
 #'            "hospitalisation", "onset", "hospitalisation"),
 #'   to = c("report", "death", "hospitalisation",
@@ -44,7 +44,7 @@
 #' )
 #' 
 #' # Define other parameters
-#' n_per_group <- rep(10, length(unique(delay_params$group)))
+#' n_per_group <- rep(10, length(unique(delay_info$group)))
 #' group_names <- c("community-alive", "community-dead", "hospitalised-alive",
 #'             "hospitalised-dead")
 #' error_params <- list(prop_missing_data = 0.2, prob_error = 0.05)
@@ -55,7 +55,7 @@
 #' sim_result <- simulate_data(
 #'   n_per_group = n_per_group,
 #'   group_names = group_names,
-#'   delay_params = delay_params,
+#'   delay_info = delay_info,
 #'   error_params = error_params,
 #'   date_range = date_range
 #' )
@@ -66,12 +66,12 @@
 #'
 simulate_data <- function(n_per_group,
                           group_names,
-                          delay_params,
+                          delay_info,
                           error_params,
                           date_range) {
   
   true_data <- simulate_true_data(n_per_group, group_names,
-                                  delay_params, date_range)
+                                  delay_info, date_range)
   
   simulate_observation_errors(true_data, error_params, date_range)
   
@@ -85,7 +85,7 @@ simulate_data <- function(n_per_group,
 #' @importFrom igraph graph_from_data_frame topo_sort degree
 #' @export
 simulate_true_data <- function(n_per_group, group_names,
-                               delay_params, date_range) {
+                               delay_info, date_range) {
   
   # Handle single n_per_group for all groups
   if (length(n_per_group) == 1) {
@@ -99,18 +99,18 @@ simulate_true_data <- function(n_per_group, group_names,
         x = "length of 'group_names' is {squote(length(group_names))}"))
   }
   
-  groups_delay_params <- sort(unique(unlist(delay_params$group)))
-  is_same_groups <- length(group_names) == length(groups_delay_params) &&
-    all(group_names == groups_delay_params)
+  groups_delay_info <- sort(unique(unlist(delay_info$group)))
+  is_same_groups <- length(group_names) == length(groups_delay_info) &&
+    all(group_names == groups_delay_info)
   if (!is_same_groups) {
     cli::cli_abort(
-      c("Groups in 'group_names' do not match those in 'delay_params'",
+      c("Groups in 'group_names' do not match those in 'delay_info'",
         i = "'data' has: {squote(group_names)}",
-        x = "'delay_params' has: {squote(groups_delay_params)}"))
+        x = "'delay_info' has: {squote(groups_delay_info)}"))
   }
   
   total_indiv <- sum(n_per_group)
-  all_event_names <- unique(c(delay_params$from, delay_params$to))
+  all_event_names <- unique(c(delay_info$from, delay_info$to))
   
   true_data <- data.frame(id = 1:total_indiv,
                           group = rep(group_names, times = n_per_group),
@@ -124,7 +124,7 @@ simulate_true_data <- function(n_per_group, group_names,
     
     # Filter the delay map to find rules applicable to the current group
     applicable_delays <-
-      delay_params[sapply(delay_params$group, 
+      delay_info[sapply(delay_info$group, 
                           function(g) current_group %in% g), ]
     
     events_in_group <- unique(c(applicable_delays$from, applicable_delays$to))
@@ -141,7 +141,7 @@ simulate_true_data <- function(n_per_group, group_names,
     while (!valid_dates && attempts < max_attempts) {
       attempts <- attempts + 1
     
-      event_cols <- unique(c(delay_params$from, delay_params$to))
+      event_cols <- unique(c(delay_info$from, delay_info$to))
       
       proposed_dates <- unlist(true_data[i, event_cols])
 
