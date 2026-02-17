@@ -309,7 +309,6 @@ datefixer_log_likelihood_delays <- function(estimated_dates, groups, mean_delays
 }
 
 
-#' @importFrom stats dgamma
 datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
                                              cv_delays, delay_from, delay_to,
                                              delay_distribution,
@@ -345,6 +344,7 @@ datefixer_log_likelihood_delays1 <- function(estimated_dates, mean_delays,
 }
 
 
+#' @importFrom stats dgamma dlnorm
 log_density_delay <- function(values, mean, cv, distribution) {
   
   params <- convert_to_distribution_params(mean, cv, distribution)

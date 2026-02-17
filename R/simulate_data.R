@@ -81,8 +81,8 @@ simulate_data <- function(n_per_group,
 #' Simulate true data
 #' @description Simulate the true, unobserved dates for individuals
 #' @inheritParams simulate_data
-#' @importFrom stats rgamma
 #' @importFrom igraph graph_from_data_frame topo_sort degree
+#' @importFrom stats runif
 #' @export
 simulate_true_data <- function(n_per_group, group_names,
                                delay_info, date_range) {
@@ -272,6 +272,7 @@ simulate_observation_errors <- function(true_data, error_params, date_range) {
 }
 
 
+#' @importFrom stats rgamma rlnorm
 simulate_sample_delay <- function(mean, cv, distribution) {
   if (distribution == "gamma") {
     shape <- (1 / cv)^2
