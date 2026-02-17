@@ -6,18 +6,18 @@
 \usage{
 mcmc_initial(
   model,
-  initial_mean_delay = 7,
-  initial_cv_delay = 0.2,
+  initial_delay_mean = 7,
+  initial_delay_cv = 0.2,
   initial_prob_error = 1
 )
 }
 \arguments{
 \item{model}{Model}
 
-\item{initial_mean_delay}{The initial value for the mean delays}
+\item{initial_delay_mean}{The initial value for the delay means}
 
-\item{initial_cv_delay}{The initial value for the coefficient of variation
-of delays}
+\item{initial_delay_cv}{The initial value for the delay coefficients of
+variation}
 
 \item{initial_prob_error}{The initial value for the probability of error}
 }

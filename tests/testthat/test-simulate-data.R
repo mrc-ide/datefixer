@@ -6,8 +6,7 @@ test_that("simulate_data returns correct structure and dimensions", {
   sim_result <- simulate_data(
     n_per_group = params$n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )
@@ -35,8 +34,7 @@ test_that("error_params as expected in simulated data", {
   sim_result <- simulate_data(
     n_per_group = n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )
@@ -72,8 +70,7 @@ test_that("simulate_data handles numeric groups correctly", {
   sim_result <- simulate_data(
     n_per_group = params$n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )
@@ -112,41 +109,36 @@ test_that("simulate_data handles bad inputs correctly", {
   ## n_per_group and group_names lengths not matching
   expect_error(simulate_data(n_per_group = c(10, 10),
                              group_names = params$group_names,
-                             delay_map = params$delay_map,
-                             delay_params = params$delay_params,
+                             delay_info = params$delay_info,
                              error_params = params$error_params,
                              date_range = params$date_range),
                "Lengths of 'n_per_group' and 'group_names' do not match")
   expect_error(simulate_data(n_per_group = params$n_per_group,
                              group_names = params$group_names[1:2],
-                             delay_map = params$delay_map,
-                             delay_params = params$delay_params,
+                             delay_info = params$delay_info,
                              error_params = params$error_params,
                              date_range = params$date_range),
                "Lengths of 'n_per_group' and 'group_names' do not match")
   
-  ## group_names do not match names in delay map
+  ## group_names do not match names in delay_info
   expect_error(simulate_data(n_per_group = params$n_per_group[1:3],
                              group_names = params$group_names[1:3],
-                             delay_map = params$delay_map,
-                             delay_params = params$delay_params,
+                             delay_info = params$delay_info,
                              error_params = params$error_params,
                              date_range = params$date_range),
-               "Groups in 'group_names' do not match those in 'delay_map'")
+               "Groups in 'group_names' do not match those in 'delay_info'")
   expect_error(simulate_data(n_per_group = params$n_per_group,
                              group_names = seq_len(4),
-                             delay_map = params$delay_map,
-                             delay_params = params$delay_params,
+                             delay_info = params$delay_info,
                              error_params = params$error_params,
                              date_range = params$date_range),
-               "Groups in 'group_names' do not match those in 'delay_map'")
+               "Groups in 'group_names' do not match those in 'delay_info'")
   expect_error(simulate_data(n_per_group = params$n_per_group,
                              group_names = params$group_names,
-                             delay_map = params$delay_map[-1, ],
-                             delay_params = params$delay_params,
+                             delay_info = params$delay_info[-1, ],
                              error_params = params$error_params,
                              date_range = params$date_range),
-               "Groups in 'group_names' do not match those in 'delay_map'")
+               "Groups in 'group_names' do not match those in 'delay_info'")
 })
 
 
@@ -162,8 +154,7 @@ test_that("simulate_data handles vector and scalar n_per_group correctly", {
   sim_result <- simulate_data(
     n_per_group = params$n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )
@@ -174,8 +165,7 @@ test_that("simulate_data handles vector and scalar n_per_group correctly", {
   sim_result2 <- simulate_data(
     n_per_group = params$n_per_group[1],
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )
@@ -191,8 +181,7 @@ test_that("simulate_data handles vector and scalar n_per_group correctly", {
   sim_result3 <- simulate_data(
     n_per_group = n_per_group,
     group_names = params$group_names,
-    delay_map = params$delay_map,
-    delay_params = params$delay_params,
+    delay_info = params$delay_info,
     error_params = params$error_params,
     date_range = params$date_range
   )

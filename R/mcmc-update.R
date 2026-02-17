@@ -1,6 +1,6 @@
 update_pars_delay <- function(state_chain, control, model, rng) {
   
-  pars_delay <- grep("^mean_delay|^cv_delay", model$parameters, value = TRUE)
+  pars_delay <- grep("^delay_mean|^delay_cv", model$parameters, value = TRUE)
   
   for (nm in pars_delay) {
     state_chain <- update_pars_delay1(nm, state_chain, control, model, rng)

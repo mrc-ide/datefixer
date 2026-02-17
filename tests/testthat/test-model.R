@@ -5,7 +5,9 @@ test_that("model info is setup correctly", {
              "hospitalisation", "onset", "hospitalisation"),
     to = c("report", "death", "hospitalisation",
            "discharge", "hospitalisation", "death"),
-    group = I(list(1:4, 2, 3, 3, 4, 4))
+    group = I(list(1:4, 2, 3, 3, 4, 4)),
+    distribution = c("gamma", "gamma", "gamma", "gamma",
+                     "log-normal", "log-normal")
   )
   
   dates <- c("onset", "hospitalisation", "report", "death", "discharge")
@@ -13,14 +15,17 @@ test_that("model info is setup correctly", {
   model_info <- make_model_info(delay_map, dates)
   
   expect_equal(names(model_info),
-               c("delay_from", "delay_to", "is_delay_in_group",
-                 "is_date_in_delay", "is_date_in_group", "is_date_connected",
-                 "event_order", "groups"))
+               c("delay_from", "delay_to", "delay_distribution",
+                 "is_delay_in_group", "is_date_in_delay", "is_date_in_group",
+                 "is_date_connected", "event_order", "groups"))
   
   delay_from <- c(1, 1, 1, 2, 1, 2)
   delay_to <- c(3, 4, 2, 5, 2, 4)
+  delay_distribution <- c("gamma", "gamma", "gamma", "gamma", 
+                          "log-normal", "log-normal")
   expect_equal(model_info$delay_from, delay_from)
   expect_equal(model_info$delay_to, delay_to)
+  expect_equal(model_info$delay_distribution, delay_distribution)
   expect_equal(model_info$groups, c(1, 2, 3, 4))
   
   expect_equal(dim(model_info$is_delay_in_group), c(6, 4))
@@ -91,7 +96,9 @@ test_that("model info is setup correctly", {
     to = c("report", "death", "hospitalisation",
            "discharge", "hospitalisation", "death"),
     group = I(list(groups[1:4], groups[2], groups[3], groups[3],
-                   groups[4], groups[4]))
+                   groups[4], groups[4])),
+    distribution = c("gamma", "gamma", "gamma", "gamma",
+                     "log-normal", "log-normal")
   )
   
   model_info2 <- make_model_info(delay_map2, dates)
@@ -111,15 +118,17 @@ test_that("model info is setup correctly", {
     to = c("report", "death", "hospitalisation",
            "discharge", "hospitalisation", "death"),
     group = I(list(groups[1:4], groups[2], groups[3], groups[3],
-                   groups[4], groups[4]))
+                   groups[4], groups[4])),
+    distribution = c("gamma", "gamma", "gamma", "gamma",
+                     "log-normal", "log-normal")
   )
   
   model_info3 <- make_model_info(delay_map3, dates)
   ## groups would be sorted into alphabetical order
   expect_equal(model_info3$groups, sort(groups))
   ## elements without group dimension should remain unchanged
-  expect_identical(model_info3[c("delay_from", "delay_to")],
-                   model_info[c("delay_from", "delay_to")])
+  unchanged <- c("delay_from", "delay_to", "delay_distribution")
+  expect_identical(model_info3[unchanged], model_info[unchanged])
   ## elements with a group dimension we expect order to have changed
   g <- match(groups, model_info3$groups)
   expect_equal(model_info3$is_delay_in_group[, g], model_info$is_delay_in_group)
@@ -259,3 +268,27 @@ test_that("date range is calculated correctly", {
                c(date_to_int("2025-02-01"), date_to_int("2025-10-01") + 1))
 })
 
+
+test_that("convert_to_distribution_params converts correctly", {
+  
+  mean <- 3
+  cv <- 2
+  
+  ## gamma distribution
+  params <- convert_to_distribution_params(mean, cv, "gamma")
+  expect_equal(params$shape, 1 / cv^2)
+  expect_equal(params$rate, 1 / (mean * cv^2))
+  expect_equal(params$shape / params$rate, mean)
+  expect_equal(1 / sqrt(params$shape), cv)
+  
+  ## log-normal distribution
+  params <- convert_to_distribution_params(mean, cv, "log-normal")
+  expect_equal(params$sdlog, sqrt(log(cv^2 + 1)))
+  expect_equal(params$meanlog, log(mean) - log(cv^2 + 1) / 2)
+  expect_equal(exp(params$meanlog + params$sdlog^2 / 2), mean)
+  expect_equal(sqrt(exp(params$sdlog^2) - 1), cv)
+  
+  ## unsupported distribution
+  expect_error(convert_to_distribution_params(mean, cv, "normal"),
+               'Distribution "normal" is not supported')
+})

@@ -142,10 +142,10 @@ mcmc_control <- function(n_steps = 1000,
 ##'
 ##' @param model Model
 ##' 
-##' @param initial_mean_delay The initial value for the mean delays
+##' @param initial_delay_mean The initial value for the delay means
 ##' 
-##' @param initial_cv_delay The initial value for the coefficient of variation
-##'   of delays
+##' @param initial_delay_cv The initial value for the delay coefficients of
+##'   variation
 ##'   
 ##' @param initial_prob_error The initial value for the probability of error  
 ##' 
@@ -153,13 +153,13 @@ mcmc_control <- function(n_steps = 1000,
 ##'
 ##' @export
 mcmc_initial <- function(model,
-                         initial_mean_delay = 7,
-                         initial_cv_delay = 0.2,
+                         initial_delay_mean = 7,
+                         initial_delay_cv = 0.2,
                          initial_prob_error = 1) {
   initial <- numeric(length(model$parameters))
   initial[model$parameters == "prob_error"] <- 0.1
-  initial[grepl("mean_delay", model$parameters)] <- initial_mean_delay
-  initial[grepl("cv_delay", model$parameters)] <- initial_cv_delay
+  initial[grepl("delay_mean", model$parameters)] <- initial_delay_mean
+  initial[grepl("delay_cv", model$parameters)] <- initial_delay_cv
   
   initial
 }

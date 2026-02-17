@@ -2,8 +2,8 @@ update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
                                   model_info, date_range, control, rng) {
   
   n_delays <- length(model_info$delay_from)
-  model_info$delay_mean <- unname(pars[paste0("mean_delay", seq_len(n_delays))])
-  model_info$delay_cv <- unname(pars[paste0("cv_delay", seq_len(n_delays))])
+  model_info$delay_mean <- unname(pars[paste0("delay_mean", seq_len(n_delays))])
+  model_info$delay_cv <- unname(pars[paste0("delay_cv", seq_len(n_delays))])
   prob_error <- pars[["prob_error"]]
 
   for (i in seq_len(nrow(observed_dates))) {
@@ -172,14 +172,12 @@ sample_from_delay <- function(i, estimated_dates, group, model_info,
     sign <- 1
   }
   
-  ## Sample a delay from the marginal posterior (gamma distribution)
-  mean_delay <- model_info$delay_mean[selected_delay]
-  cv_delay <- model_info$delay_cv[selected_delay]
+  ## Sample a delay from the marginal posterior
+  mean <- model_info$delay_mean[selected_delay]
+  cv <- model_info$delay_cv[selected_delay]
+  distribution <- model_info$delay_distribution[selected_delay]
   
-  shape <- 1 / (cv_delay^2)
-  rate <- shape / mean_delay
-  
-  sampled_delay <- monty::monty_random_gamma_rate(shape, rate, rng)
+  sampled_delay <- sample_from_delay1(mean, cv, distribution, rng)
   
   ## Calculate proposed date based on the sampled delay
   proposed_date <- other_date + sign * sampled_delay
@@ -188,6 +186,18 @@ sample_from_delay <- function(i, estimated_dates, group, model_info,
   
 }
 
+
+sample_from_delay1 <- function(mean, cv, distribution, rng) {
+  params <- convert_to_distribution_params(mean, cv, distribution)
+  
+  if (distribution == "gamma") {
+    x <- monty::monty_random_gamma_rate(params$shape, params$rate, rng)
+  } else if (distribution == "log-normal") {
+    x <- monty::monty_random_log_normal(params$meanlog, params$sdlog, rng)
+  } 
+  
+  x
+}
 
 
 # propose new estimated dates for date indices in to_update
@@ -248,7 +258,7 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   ll_delays_new <- datefixer_log_likelihood_delays1(
     augmented_data_new$estimated_dates, model_info$delay_mean, 
     model_info$delay_cv, model_info$delay_from, model_info$delay_to,
-    is_delay_in_group)
+    model_info$delay_distribution, is_delay_in_group)
   
   if (any(is.infinite(ll_delays_new))) {
     ## Covering two cases here:
@@ -263,7 +273,8 @@ calc_accept_prob <- function(updated, augmented_data_new, augmented_data,
   ## current delays log likelihood
   ll_delays_current <- datefixer_log_likelihood_delays1(
     augmented_data$estimated_dates, model_info$delay_mean, model_info$delay_cv,
-    model_info$delay_from, model_info$delay_to, is_delay_in_group)
+    model_info$delay_from, model_info$delay_to, model_info$delay_distribution,
+    is_delay_in_group)
   
   ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
   
@@ -331,8 +342,9 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
         is_delay_available
       
       ## error or missing - proposal is based on delay(s)
-      shape <- 1 / (model_info$delay_cv[can_sample_from_delay]^2)
-      rate <- shape / model_info$delay_mean[can_sample_from_delay]
+      delay_cv <- model_info$delay_cv[can_sample_from_delay]
+      delay_mean <- model_info$delay_mean[can_sample_from_delay]
+      delay_distribution <- model_info$delay_distribution[can_sample_from_delay]
       delay_from <- model_info$delay_from[can_sample_from_delay]
       delay_to <- model_info$delay_to[can_sample_from_delay]
       delay_values <- augmented_data$estimated_dates[delay_to] - 
@@ -340,11 +352,13 @@ calc_proposal_density <- function(updated, augmented_data, group, model_info) {
       
       if (sum(can_sample_from_delay) == 1) {
         ## single delay involving date i
-        d[j] <- dgamma(delay_values, shape, rate, log = TRUE)
+        d[j] <- log_density_delay(delay_values, delay_mean, delay_cv,
+                                  delay_distribution)
       } else {
         ## multiple delays involving date i, so delay selected at random
-        d[j] <- log(sum(dgamma(delay_values, shape, rate))) - 
-          log(sum(can_sample_from_delay))
+        d[j] <- log(sum(exp(mapply(log_density_delay, delay_values, delay_mean,
+                           delay_cv, delay_distribution)))) - 
+                      log(sum(can_sample_from_delay))
       }
       
     }

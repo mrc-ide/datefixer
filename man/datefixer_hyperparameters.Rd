@@ -7,8 +7,8 @@
 datefixer_hyperparameters(
   prob_error_shape1 = 1,
   prob_error_shape2 = 1,
-  mean_delay_scale = 10,
-  cv_delay_scale = 10
+  delay_mean_scale = 10,
+  delay_cv_scale = 10
 )
 }
 \arguments{
@@ -18,10 +18,10 @@ distribution for the probability of error}
 \item{prob_error_shape2}{The second shape parameter of the beta prior
 distribution for the probability of error}
 
-\item{mean_delay_scale}{The scale parameter (mean) of the exponential prior
+\item{delay_mean_scale}{The scale parameter (mean) of the exponential prior
 distribution for the means of the delays}
 
-\item{cv_delay_scale}{The scale parameter (mean) of the exponential prior
+\item{delay_cv_scale}{The scale parameter (mean) of the exponential prior
 distribution for the coefficients of variations of the delays}
 }
 \value{
