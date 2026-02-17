@@ -38,7 +38,7 @@
 #'     "hospitalised-dead",
 #'     "hospitalised-dead")),
 #'   distribution = c("gamma", "gamma", "gamma", "gamma",
-#'                    "log-normal", "log-normal")
+#'                    "log-normal", "log-normal"),
 #'   mean = c(10, 10, 10, 10, 15, 7, 20, 7, 12),
 #'   cv = c(0.3, 0.3, 0.3, 0.3, 0.4, 0.2, 0.5, 0.2, 0.3)
 #' )
