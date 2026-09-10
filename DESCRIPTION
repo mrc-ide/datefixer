@@ -22,6 +22,7 @@ Imports:
     purrr,
     stats,
     ggtext,
+    patchwork,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Remotes: mrc-ide/monty@mrc-6769
