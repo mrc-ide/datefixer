@@ -1,100 +1,120 @@
 update_augmented_data <- function(augmented_data, observed_dates, pars, groups,
                                   model_info, date_range, control, rng) {
-
-  n_delays <- length(model_info$delay_from)
   
-  delay_pars <- unpack_delay_pars(pars, model_info$delay_distribution)
+  delay_pars <- unpack_delay_pars(pars, model_info$delay_info$distribution)
   prob_error <- pars[["prob_error"]]
 
-  for (i in seq_len(nrow(observed_dates))) {
-    augmented_data_i <- lapply(augmented_data, function(x) x[i, ])
-    augmented_data_i <- 
-      update_augmented_data1(augmented_data_i, observed_dates[i, ], groups[i],
-                             prob_error, delay_pars, model_info, date_range,
-                             control, rng)
-    augmented_data$estimated_dates[i, ] <- augmented_data_i$estimated_dates
-    augmented_data$error_indicators[i, ] <- augmented_data_i$error_indicators
+  for (g in seq_along(model_info$group_info)) {
+    i_group <- which(groups == g)
+    group_info <- model_info$group_info[[g]]
+    augmented_data <- 
+      update_augmented_data1(i_group, augmented_data, observed_dates, 
+                             prob_error, delay_pars, model_info$delay_info,
+                             group_info, date_range, control, rng)
   }
   
   augmented_data
 }
 
 
-# Updating the augmented data for one individual
-update_augmented_data1 <- function(augmented_data, observed_dates, group,
-                                   prob_error, delay_pars, model_info,
-                                   date_range, control, rng) {
+# Updating the augmented data for one group
+update_augmented_data1 <- function(i_group, augmented_data, observed_dates,
+                                   prob_error, delay_pars, delay_info,
+                                   group_info, date_range, control, rng) {
 
   augmented_data <-
-    update_estimated_dates(augmented_data, observed_dates, group, prob_error,
-                           delay_pars, model_info, date_range, control, rng)
+    update_estimated_dates(i_group, augmented_data, observed_dates, prob_error,
+                           delay_pars, delay_info, group_info, date_range,
+                           control, rng)
   
   augmented_data <-
-    update_error_indicators(augmented_data, observed_dates, group, prob_error,
-                            delay_pars, model_info, date_range, control, rng)
+    update_error_indicators(i_group, augmented_data, observed_dates, prob_error,
+                            delay_pars, delay_info, group_info, date_range,
+                            control, rng)
   
   augmented_data <-
-    swap_error_indicators(augmented_data, observed_dates, group, prob_error,
-                          delay_pars, model_info, date_range, control, rng)
+    swap_error_indicators(i_group, augmented_data, observed_dates, prob_error,
+                          delay_pars, delay_info, group_info, date_range,
+                          control, rng)
 
   augmented_data
 }
 
 
 # Updating all the relevant estimated dates for one individual
-update_estimated_dates <- function(augmented_data, observed_dates, group,
-                                   prob_error, delay_pars, model_info,
-                                   date_range, control, rng) {
+update_estimated_dates <- function(i_group, augmented_data, observed_dates,
+                                   prob_error, delay_pars, delay_info,
+                                   group_info, date_range, control, rng) {
 
-  for (i in seq_along(observed_dates)) {
-    augmented_data <- 
-      update_estimated_dates1(i, augmented_data, observed_dates, group,
-                              prob_error, delay_pars, model_info,
-                              date_range, control, rng)
+  for (d in seq_len(ncol(observed_dates))) {
+    update <- group_info$is_date_in_group[d]
+    if (update) {
+      augmented_data <- 
+        update_estimated_dates1(d, i_group, augmented_data, observed_dates,
+                                prob_error, delay_pars, delay_info,
+                                group_info, date_range, control, rng)
+    }
   }
   
   augmented_data
 }
 
 
-# Updating one of the estimated dates for an individual
-update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
-                                    prob_error, delay_pars, model_info,
-                                    date_range, control, rng) {
+# Updating one of the estimated dates for a group
+update_estimated_dates1 <- function(date, i_group, augmented_data,
+                                    observed_dates, prob_error, delay_pars, 
+                                    delay_info, group_info, date_range, 
+                                    control, rng) {
   
-  ## we check if date i is in the given group
-  ## if FALSE, no update
-  ## if TRUE, update with probability prob_update_estimated_dates
-  group_info <- model_info$group_info[[group]]
-  update <- group_info$is_date_in_group[i] &&
-    monty::monty_random_real(rng) < control$prob_update_estimated_dates
-  if (!update) {
+  group_size <- length(i_group)
+  ## update each with probability prob_update_estimated_dates
+  update <- monty::monty_random_n_real(group_size, rng) < 
+    control$prob_update_estimated_dates
+  i_update <- i_group[update]
+  if (length(i_update) == 0) {
     return(augmented_data)
   }
   
   if (control$cascade_sampling) {
     sampling_order <- 
-      calc_cascade_sampling_order(i, group_info$event_order,
-                                  augmented_data$error_indicators,
-                                  group_info$is_date_connected,
-                                  group_info$shortest_paths)
+      lapply(i_update, 
+             function(i) {
+               calc_cascade_sampling_order(date, group_info$event_order,
+                                           augmented_data$error_indicators[i, ],
+                                           group_info$is_date_connected,
+                                           group_info$shortest_paths)
+             })
+      
   } else {
-    sampling_order <- i
+    sampling_order <- rep(list(date), length(i_update))
   }
   sampling_order_reverse <- sampling_order
   
-  augmented_data_new <- 
-    propose_estimated_dates(sampling_order, augmented_data, observed_dates,
-                            group, delay_pars, model_info, date_range, rng)
+  estimated_dates_new <- 
+    t(vapply(seq_along(i_update),
+           function(i) {
+             propose_estimated_dates(
+               sampling_order[[i]], 
+               augmented_data$estimated_dates[i_update[i], ], 
+               augmented_data$error_indicators[i_update[i], ],
+               observed_dates[i_update[i], ], delay_pars,
+               delay_info, group_info, date_range, rng)
+           }, numeric(ncol(observed_dates))))
+    
   
   accept_prob <-
-    calc_accept_prob(sampling_order, sampling_order_reverse,
-                     augmented_data_new, augmented_data, observed_dates,
-                     group, prob_error, delay_pars, model_info, date_range)
+    calc_accept_prob(sampling_order, sampling_order_reverse, 
+                     estimated_dates_new, 
+                     augmented_data$estimated_dates[i_update, , drop = FALSE], 
+                     augmented_data$error_indicators[i_update, , drop = FALSE],
+                     augmented_data$error_indicators[i_update, , drop = FALSE],
+                     observed_dates[i_update, , drop = FALSE], prob_error, 
+                     delay_pars, delay_info, group_info, date_range)
 
-  accept <- log(monty::monty_random_real(rng)) < accept_prob
-  if (accept) {
-    augmented_data <- augmented_data_new
+  accept <- log(monty::monty_random_n_real(length(i_update), rng)) < accept_prob
+  i_accept <- i_update[accept]
+  if (length(i_accept) > 0) {
+    augmented_data$estimated_dates[i_accept, ] <- estimated_dates_new[accept, ]
   }
   
   augmented_data
@@ -103,15 +123,18 @@ update_estimated_dates1 <- function(i, augmented_data, observed_dates, group,
 
 # Updating all the relevant error indicators (and corresponding estimated dates)
 # for one individual
-update_error_indicators <- function(augmented_data, observed_dates, group,
-                                    prob_error, delay_pars, model_info,
-                                    date_range, control, rng) {
+update_error_indicators <- function(i_group, augmented_data, observed_dates,
+                                    prob_error, delay_pars, delay_info,
+                                    group_info, date_range, control, rng) {
   
-  for (i in seq_along(observed_dates)) {
-    augmented_data <- 
-      update_error_indicators1(i, augmented_data, observed_dates, group,
-                               prob_error, delay_pars, model_info, date_range,
-                               control, rng)
+  for (d in seq_len(ncol(observed_dates))) {
+    update <- group_info$is_date_in_group[d]
+    if (update) {
+      augmented_data <- 
+        update_error_indicators1(d, i_group, augmented_data, observed_dates, 
+                                 prob_error, delay_pars, delay_info, group_info,
+                                 date_range, control, rng)
+    }
   }
   
   augmented_data
@@ -120,50 +143,78 @@ update_error_indicators <- function(augmented_data, observed_dates, group,
 
 # Updating one of the error indicators (and corresponding estimated date) for an
 # individual
-update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
-                                     prob_error, delay_pars, model_info,
-                                     date_range, control, rng) {
+update_error_indicators1 <- function(date, i_group, augmented_data, 
+                                     observed_dates, prob_error, delay_pars, 
+                                     delay_info, group_info, date_range,
+                                     control, rng) {
+  
+  group_size <- length(i_group)
   
   ## we check if error indicator is non-NA (so date is non-missing)
   ## if FALSE, no update
   ## if TRUE, update with probability prob_update_error_indicators
-  update <- !is.na(augmented_data$error_indicators[i]) &&
-    monty::monty_random_real(rng) < control$prob_update_error_indicators
-  if (!update) {
+  
+  update <- monty::monty_random_n_real(group_size, rng) < 
+    control$prob_update_error_indicators &
+    !is.na(augmented_data$error_indicators[i_group, date])
+  i_update <- i_group[update]
+  if (length(i_update) == 0) {
     return(augmented_data)
   }
+ 
+  error_indicators_new <- 
+    change_error_indicators(augmented_data$error_indicators, date, i_update)
   
-  group_info <- model_info$group_info[[group]]
-  
-  augmented_data_new <- change_error_indicators(augmented_data, i)
   if (control$cascade_sampling) {
     sampling_order <- 
-      calc_cascade_sampling_order(i, group_info$event_order,
-                                  augmented_data_new$error_indicators,
-                                  group_info$is_date_connected,
-                                  group_info$shortest_paths)
+      lapply(seq_along(i_update), 
+             function(i) {
+               calc_cascade_sampling_order(date, group_info$event_order,
+                                           error_indicators_new[i, ],
+                                           group_info$is_date_connected,
+                                           group_info$shortest_paths)
+             })
     sampling_order_reverse <- 
-      calc_cascade_sampling_order(i, group_info$event_order,
-                                  augmented_data$error_indicators,
-                                  group_info$is_date_connected,
-                                  group_info$shortest_paths)
+      lapply(i_update, 
+             function(i) {
+               calc_cascade_sampling_order(date, group_info$event_order,
+                                           augmented_data$error_indicators[i, ],
+                                           group_info$is_date_connected,
+                                           group_info$shortest_paths)
+             })
+    
   } else {
-    sampling_order <- i
-    sampling_order_reverse <- i
+    sampling_order <- rep(list(date), length(i_update))
+    sampling_order_reverse <- sampling_order
   }
   
-  augmented_data_new <- 
-    propose_estimated_dates(sampling_order, augmented_data_new, observed_dates, 
-                            group, delay_pars, model_info, date_range, rng)
+  estimated_dates_new <- 
+    t(vapply(seq_along(i_update),
+             function(i) {
+               propose_estimated_dates(
+                 sampling_order[[i]], 
+                 augmented_data$estimated_dates[i_update[i], ], 
+                 error_indicators_new[i, ],
+                 observed_dates[i_update[i], ], delay_pars, 
+                 delay_info, group_info, date_range, rng)
+             }, numeric(ncol(observed_dates))))
+  
   
   accept_prob <-
-    calc_accept_prob(sampling_order, sampling_order_reverse,
-                     augmented_data_new, augmented_data, observed_dates,
-                     group, prob_error, delay_pars, model_info, date_range)
-
-  accept <- log(monty::monty_random_real(rng)) < accept_prob
-  if (accept) {
-    augmented_data <- augmented_data_new
+    calc_accept_prob(sampling_order, sampling_order_reverse, 
+                     estimated_dates_new, 
+                     augmented_data$estimated_dates[i_update, , drop = FALSE], 
+                     error_indicators_new,
+                     augmented_data$error_indicators[i_update, , drop = FALSE],
+                     observed_dates[i_update, , drop = FALSE], prob_error, 
+                     delay_pars, delay_info, group_info, date_range)
+  
+  accept <- log(monty::monty_random_n_real(length(i_update), rng)) < accept_prob
+  i_accept <- i_update[accept]
+  if (length(i_accept) > 0) {
+    augmented_data$estimated_dates[i_accept, ] <- estimated_dates_new[accept, ]
+    augmented_data$error_indicators[i_accept, ] <- 
+      error_indicators_new[accept, ]
   }
   
   augmented_data
@@ -171,12 +222,11 @@ update_error_indicators1 <- function(i, augmented_data, observed_dates, group,
 
 
 # Sample new date using randomly selected delay
-sample_from_delay <- function(i, augmented_data, group, delay_pars, model_info,
-                              date_range, rng) {
-  group_info <- model_info$group_info[[group]]
+sample_from_delay <- function(i, estimated_dates, error_indicators, delay_pars, 
+                              delay_info, group_info, date_range, rng) {
   is_date_connected <- group_info$is_date_connected[i, ]
   delay_connecting_dates <- group_info$delay_connecting_dates[i, ]
-  is_date_available <- !is.na(augmented_data$estimated_dates)
+  is_date_available <- !is.na(estimated_dates)
   
   delays_for_sampling <- 
     delay_connecting_dates[is_date_available & is_date_connected]
@@ -192,7 +242,7 @@ sample_from_delay <- function(i, augmented_data, group, delay_pars, model_info,
       ceiling(length(delays_for_sampling) * monty::monty_random_real(rng))
     selected_delay <- delays_for_sampling[delay_idx]
     
-    delay_from <- model_info$delay_from[selected_delay]
+    delay_from <- delay_info$from[selected_delay]
     
     ## Is date i the 'from' or 'to' in this delay
     is_from <- (i == delay_from)
@@ -202,19 +252,19 @@ sample_from_delay <- function(i, augmented_data, group, delay_pars, model_info,
       ## so delay = other_date - proposed_date
       sign <- -1
       ## Find the other date in this date pair
-      delay_to <- model_info$delay_to[selected_delay]
-      other_date <- augmented_data$estimated_dates[delay_to]
+      delay_to <- delay_info$to[selected_delay]
+      other_date <- estimated_dates[delay_to]
     } else {
       ## proposed date = other_date + delay  
       ## so delay = proposed_date - other_date
       sign <- 1
       ## Find the other date in this date pair
-      other_date <- augmented_data$estimated_dates[delay_from]
+      other_date <- estimated_dates[delay_from]
     }
     
     ## Sample a delay from the marginal posterior
     pars <- delay_pars[[selected_delay]]
-    distribution <- model_info$delay_distribution[selected_delay]
+    distribution <- delay_info$distribution[selected_delay]
     
     sampled_delay <- sample_from_delay1(pars, distribution, rng)
     
@@ -243,84 +293,88 @@ sample_from_delay1 <- function(pars, distribution, rng) {
 
 
 # propose new estimated dates for date indices in to_update
-propose_estimated_dates <- function(sampling_order, augmented_data,
-                                    observed_dates, group, delay_pars,
-                                    model_info, date_range, rng) {
+propose_estimated_dates <- function(sampling_order, estimated_dates,
+                                    error_indicators, observed_dates, 
+                                    delay_pars, delay_info, group_info, 
+                                    date_range, rng) {
   
-  augmented_data$estimated_dates[sampling_order] <- NA
+  estimated_dates[sampling_order] <- NA
   
   for (i in sampling_order) {
-    if (isFALSE(augmented_data$error_indicators[i])) {
-      augmented_data$estimated_dates[i] <-
-        observed_dates[i] + monty::monty_random_real(rng)
+    if (isFALSE(error_indicators[i])) {
+      estimated_dates[i] <- observed_dates[i] + monty::monty_random_real(rng)
     } else {
-      augmented_data$estimated_dates[i] <-
-        sample_from_delay(i, augmented_data, group, delay_pars, 
-                          model_info, date_range, rng)
+      estimated_dates[i] <- 
+        sample_from_delay(i, estimated_dates, error_indicators, delay_pars, 
+                          delay_info, group_info, date_range, rng)
     }
   }
   
-  augmented_data
+  estimated_dates
 }
 
 
 ## calculate the (log) acceptance probability for updating augmented_data to
 ## augmented_data_new where updated is the indices of the updated date(s)
 calc_accept_prob <- function(sampling_order, sampling_order_reverse,
-                             augmented_data_new, augmented_data,
-                             observed_dates, group, prob_error, delay_pars,
-                             model_info, date_range) {
+                             estimated_dates_new, estimated_dates,
+                             error_indicators_new, error_indicators,
+                             observed_dates, prob_error, delay_pars,
+                             delay_info, group_info, date_range) {
   
-  is_delay_in_group <- model_info$group_info[[group]]$is_delay_in_group
+  is_delay_in_group <- group_info$is_delay_in_group
 
+  accept_prob <- rep(-Inf, length(sampling_order))
+  
   ## are error indicators TRUE with estimated date matching observed date
   incompatible_error_and_date <-
-    !is.na(augmented_data_new$error_indicators[sampling_order]) &
-    augmented_data_new$error_indicators[sampling_order] == TRUE &
-    (floor(augmented_data_new$estimated_dates[sampling_order]) == 
-       observed_dates[sampling_order])
+    !is.na(error_indicators_new) & error_indicators_new == TRUE &
+    (floor(estimated_dates_new) == observed_dates)
   ## are estimated dates outside the date range 
   date_outside_range <- 
-    augmented_data_new$estimated_dates[sampling_order] < date_range[1] |
-    augmented_data_new$estimated_dates[sampling_order] >= date_range[2]
-  reject <- any(incompatible_error_and_date) || any(date_outside_range)
-  if (reject) {
-    return(-Inf)
+    estimated_dates_new < date_range[1] | estimated_dates_new >= date_range[2]
+  reject <- 
+    rowSums(incompatible_error_and_date | date_outside_range, na.rm = TRUE) > 0
+  
+  if (all(reject)) {
+    return(accept_prob)
   }
   
   ## new delays log likelihood
   ll_delays_new <- chronofix_log_likelihood_delays1(
-    augmented_data_new$estimated_dates, delay_pars, model_info$delay_from,
-    model_info$delay_to, model_info$delay_distribution, is_delay_in_group)
+    estimated_dates_new[!reject, , drop = FALSE], delay_pars,
+    delay_info, is_delay_in_group)
   
-  if (any(is.infinite(ll_delays_new))) {
-    ## Covering two cases here:
-    ## 1. a proposed delay is negative so we want to auto-reject
-    ## 2. we haveended up in a situation that such a small delay has been drawn
-    ##    that when recalculated from the dates it is essentially 0 and 
-    ##    distribution has infinite density at 0 (CV > 1). Let's reject for
-    ##    the moment
-    return(-Inf)
+  ## Covering two cases here:
+  ## 1. a proposed delay is negative so we want to auto-reject
+  ## 2. we haveended up in a situation that such a small delay has been drawn
+  ##    that when recalculated from the dates it is essentially 0 and 
+  ##    distribution has infinite density at 0 (CV > 1). Let's reject for
+  ##    the moment
+  is_ll_infinite <- rowSums(is.infinite(ll_delays_new)) > 0
+  reject[!reject] <- is_ll_infinite
+  ll_delays_new <- ll_delays_new[!is_ll_infinite, , drop = FALSE]
+  if (nrow(ll_delays_new) == 0) {
+    return(accept_prob)
   }
   
   ## current delays log likelihood
   ll_delays_current <- chronofix_log_likelihood_delays1(
-    augmented_data$estimated_dates, delay_pars, model_info$delay_from,
-    model_info$delay_to, model_info$delay_distribution, is_delay_in_group)
+    estimated_dates[!reject, , drop = FALSE], delay_pars, 
+    delay_info, is_delay_in_group)
   
-  ratio_ll_delays <- sum(ll_delays_new) - sum(ll_delays_current)
+  ratio_ll_delays <- rowSums(ll_delays_new - ll_delays_current)
   
-  if (identical(augmented_data$error_indicators, 
-                augmented_data_new$error_indicators)) {
+  if (identical(error_indicators, error_indicators_new)) {
     ## can skip errors log likelihood calculation
     ratio_ll_errors <- 0 
   } else {
     ## current errors log likelihood
     ll_errors_current <- chronofix_log_likelihood_errors(
-      prob_error, augmented_data$error_indicators, date_range)
+      prob_error, error_indicators[!reject, , drop = FALSE], date_range)
     ## new errors log likelihood
     ll_errors_new <- chronofix_log_likelihood_errors(
-      prob_error, augmented_data_new$error_indicators, date_range)
+      prob_error, error_indicators_new[!reject, , drop = FALSE], date_range)
     
     ratio_ll_errors <- ll_errors_new - ll_errors_current
   }
@@ -328,31 +382,48 @@ calc_accept_prob <- function(sampling_order, sampling_order_reverse,
   ratio_post <- ratio_ll_delays + ratio_ll_errors
 
   ## No need to calculate proposal correction if ratio_post is -Inf
-  if (ratio_post == -Inf) {
-    return(-Inf)
+  is_ratio_post_neg_inf <- ratio_post == -Inf
+  reject[!reject] <- is_ratio_post_neg_inf
+  ratio_post <- ratio_post[!is_ratio_post_neg_inf]
+  if (length(ratio_post) == 0) {
+    return(accept_prob)
   }
   
+  ll_delays_new <- ll_delays_new[!is_ratio_post_neg_inf, , drop = FALSE]
+  ll_delays_current <- ll_delays_current[!is_ratio_post_neg_inf, , drop = FALSE]
+  
+  i_prop_to_calc <- which(!reject)
   prop_current <- 
-    calc_proposal_density(sampling_order_reverse, augmented_data, group, 
-                          delay_pars, model_info, date_range)
-  prop_new <- calc_proposal_density(sampling_order, augmented_data_new,
-                                    group, delay_pars, model_info, date_range)
+    vapply(seq_along(i_prop_to_calc),
+           function(i) {
+             calc_proposal_density(sampling_order_reverse[[i_prop_to_calc[i]]],
+                                   error_indicators[i_prop_to_calc[i], ],
+                                   ll_delays_current[i, ], 
+                                   group_info, date_range)
+           }, numeric(1))
+  prop_new <- 
+    vapply(seq_along(i_prop_to_calc),
+           function(i) {
+             calc_proposal_density(sampling_order[[i_prop_to_calc[i]]],
+                                   error_indicators_new[i_prop_to_calc[i], ],
+                                   ll_delays_new[i, ], 
+                                   group_info, date_range)
+           }, numeric(1))
   ratio_prop <- prop_current - prop_new
   
-  ratio_post + ratio_prop
+  accept_prob[!reject] <- ratio_post + ratio_prop
+  
+  accept_prob
 }
 
 
-calc_proposal_density <- function(sampling_order, augmented_data,
-                                  group, delay_pars, model_info, date_range) {
-  group_info <- model_info$group_info[[group]]
-  is_date_in_delay <- group_info$is_date_in_delay
+calc_proposal_density <- function(sampling_order, error_indicators, ll_delays,
+                                  group_info, date_range) {
   is_date_in_group <- group_info$is_date_in_group
   is_date_connected <- group_info$is_date_connected
   delay_connecting_dates <- group_info$delay_connecting_dates
   
-  is_resampled <- 
-    seq_along(augmented_data$error_indicators) %in% sampling_order
+  is_resampled <- seq_along(error_indicators) %in% sampling_order
   is_date_available <- is_date_in_group & !is_resampled
   
   d <- rep(0, length(sampling_order))
@@ -364,7 +435,7 @@ calc_proposal_density <- function(sampling_order, augmented_data,
     ## if non-error (FALSE) - proposal is uniform over one day so log-density 
     ## is 0, hence only need to calculate for error (TRUE) or missing (NA)
     
-    if (!isFALSE(augmented_data$error_indicators[i])) {
+    if (!isFALSE(error_indicators[i])) {
       ## which dates were available for sampling
       delays_for_sampling <- 
         delay_connecting_dates[i, is_date_available & is_date_connected[i, ]]
@@ -374,27 +445,12 @@ calc_proposal_density <- function(sampling_order, augmented_data,
         d[j] <- -log(date_range[2L] - date_range[1L])
       } else {
         ## error or missing - proposal is based on delay(s)
-        delay_pars_sample <- delay_pars[delays_for_sampling]
-        delay_distribution <- 
-          model_info$delay_distribution[delays_for_sampling]
-        delay_from <- model_info$delay_from[delays_for_sampling]
-        delay_to <- model_info$delay_to[delays_for_sampling]
-        delay_values <- augmented_data$estimated_dates[delay_to] - 
-          augmented_data$estimated_dates[delay_from]
-        
         if (length(delays_for_sampling) == 1) {
           ## single delay involving date i
-          d[j] <- log_density_delay(delay_values, delay_pars_sample[[1]],
-                                    delay_distribution)
+          d[j] <- ll_delays[delays_for_sampling]
         } else {
           ## multiple delays involving date i, so delay selected at random
-          d[j] <- 
-            log(sum(exp(vnapply(seq_along(delays_for_sampling),
-                                function(i) {
-                                  log_density_delay(delay_values[i], 
-                                                    delay_pars_sample[[i]], 
-                                                    delay_distribution[i])
-                                  })))) - 
+          d[j] <- log(sum(exp(ll_delays[delays_for_sampling]))) - 
             log(length(delays_for_sampling))
         }
       }
@@ -416,48 +472,78 @@ has_mixed_errors <- function(error_indicators) {
 }
 
 
-# Swap error indicators for one eligible individual
-swap_error_indicators <- function(augmented_data, observed_dates, group,
-                                  prob_error, delay_pars, model_info,
-                                  date_range, control, rng) {
+# Swap error indicators for one group
+swap_error_indicators <- function(i_group, augmented_data, observed_dates,
+                                  prob_error, delay_pars, delay_info,
+                                  group_info, date_range, control, rng) {
 
+  group_size <- length(i_group)
+  event_order <- group_info$event_order
+  
   ## we check if individual has mixed errors (at least one error and non-error)
   ## if FALSE, no update
   ## if TRUE, update with probability prob_error_swap
-  update <- has_mixed_errors(augmented_data$error_indicators) &&
-    monty::monty_random_real(rng) < control$prob_error_swap
-  if (!update) {
+  
+  update <- monty::monty_random_n_real(group_size, rng) < 
+    control$prob_error_swap &
+    vapply(i_group, 
+           function (i) has_mixed_errors(augmented_data$error_indicators[i, ]),
+           logical(1))
+  i_update <- i_group[update]
+  if (length(i_update) == 0) {
     return(augmented_data)
-  } 
+  }
   
-  group_info <- model_info$group_info[[group]]
-  event_order <- group_info$event_order
-  
-  augmented_data_new <- change_error_indicators(augmented_data, event_order)
+  error_indicators_new <- 
+    change_error_indicators(augmented_data$error_indicators, 
+                            event_order, i_update)
   
   sampling_order <- 
-    calc_batch_sampling_order(event_order, augmented_data_new$error_indicators,
-                              group_info$is_date_connected)
+    lapply(seq_along(i_update), 
+           function(i) {
+             calc_batch_sampling_order(
+               event_order, error_indicators_new[i, ],
+               group_info$is_date_connected)
+           })
   
   sampling_order_reverse <- 
-    calc_batch_sampling_order(event_order, augmented_data$error_indicators,
-                              group_info$is_date_connected)
-
-  # systematically sample new errors and missing dates based on new non-errors
-  augmented_data_new <- 
-    propose_estimated_dates(sampling_order, augmented_data_new, observed_dates, 
-                            group, delay_pars, model_info, date_range, rng)
-
-  accept_prob <-
-    calc_accept_prob(sampling_order, sampling_order_reverse,
-                     augmented_data_new, augmented_data, observed_dates,
-                     group, prob_error, delay_pars, model_info, date_range)
+    lapply(i_update, 
+           function(i) {
+             calc_batch_sampling_order(
+               event_order, augmented_data$error_indicators[i, ],
+               group_info$is_date_connected)
+           })
   
-  accept <- log(monty::monty_random_real(rng)) < accept_prob
-  if (accept) {
-    augmented_data <- augmented_data_new
+  # systematically sample new errors and missing dates based on new non-errors
+  estimated_dates_new <- 
+    t(vapply(seq_along(i_update),
+             function(i) {
+               propose_estimated_dates(
+                 sampling_order[[i]], 
+                 augmented_data$estimated_dates[i_update[i], ], 
+                 error_indicators_new[i, ],
+                 observed_dates[i_update[i], ], delay_pars, 
+                 delay_info, group_info, date_range, rng)
+             }, numeric(ncol(observed_dates))))
+  
+  
+  accept_prob <-
+    calc_accept_prob(sampling_order, sampling_order_reverse, 
+                     estimated_dates_new, 
+                     augmented_data$estimated_dates[i_update, , drop = FALSE], 
+                     error_indicators_new,
+                     augmented_data$error_indicators[i_update, , drop = FALSE],
+                     observed_dates[i_update, , drop = FALSE], prob_error, 
+                     delay_pars, delay_info, group_info, date_range)
+  
+  accept <- log(monty::monty_random_n_real(length(i_update), rng)) < accept_prob
+  i_accept <- i_update[accept]
+  if (length(i_accept) > 0) {
+    augmented_data$estimated_dates[i_accept, ] <- estimated_dates_new[accept, ]
+    augmented_data$error_indicators[i_accept, ] <- 
+      error_indicators_new[accept, ]
   }
-
+  
   augmented_data
 
 }
@@ -561,7 +647,8 @@ calc_cascade_sampling_order <- function(i, event_order,
 }
 
 
-change_error_indicators <- function(augmented_data, i) {
-  augmented_data$error_indicators[i] <- !augmented_data$error_indicators[i]
-  augmented_data
+change_error_indicators <- function(error_indicators, d, i) {
+  error_indicators <- error_indicators[i, , drop = FALSE]
+  error_indicators[, d] <- !error_indicators[, d]
+  error_indicators
 }

@@ -2,7 +2,7 @@ update_pars_delay <- function(state_chain, control, model, rng) {
   
   augmented_data <- model$data_packer$unpack(attr(state_chain$pars, "data"))
   
-  for (i in seq_along(model$info$delay_distribution)) {
+  for (i in seq_along(model$info$delay_info$distribution)) {
     state_chain$pars <- update_pars_delay1(i, state_chain$pars, augmented_data,
                                            control, model, rng)
   }
@@ -13,8 +13,8 @@ update_pars_delay <- function(state_chain, control, model, rng) {
 
 update_pars_delay1 <- function(i, pars, augmented_data, control, model, rng) {
   
-  delay_from <- model$info$delay_from[i]
-  delay_to <- model$info$delay_to[i]
+  delay_from <- model$info$delay_info$from[i]
+  delay_to <- model$info$delay_info$to[i]
   is_delay_in_group <- 
     unlist(lapply(model$info$group_info, function (x) x$is_delay_in_group[i]))
   
@@ -23,7 +23,7 @@ update_pars_delay1 <- function(i, pars, augmented_data, control, model, rng) {
   delay_values <- augmented_data$estimated_dates[k, delay_to] - 
     augmented_data$estimated_dates[k, delay_from]
   
-  if (model$info$delay_distribution[i] == "gamma") {
+  if (model$info$delay_info$distribution[i] == "gamma") {
     j_mean <- model$parameters == paste0("delay", i, "_mean")
     j_shape <- model$parameters == paste0("delay", i, "_shape")
     
@@ -34,7 +34,7 @@ update_pars_delay1 <- function(i, pars, augmented_data, control, model, rng) {
     
     pars[j_mean] <- mean
     pars[j_shape] <- shape
-  } else if (model$info$delay_distribution[i] == "log-normal") {
+  } else if (model$info$delay_info$distribution[i] == "log-normal") {
     j_meanlog <- model$parameters == paste0("delay", i, "_meanlog")
     j_precisionlog <- model$parameters == paste0("delay", i, "_precisionlog")
     

@@ -191,8 +191,8 @@ test_that("update gamma pars works correctly", {
   
   pars_new <- update_pars_delay1(i, pars, augmented_data, control, model, rng)
   
-  delay_from <- model$info$delay_from[i]
-  delay_to <- model$info$delay_to[i]
+  delay_from <- model$info$delay_info$from[i]
+  delay_to <- model$info$delay_info$to[i]
   is_delay_in_group <- 
     unlist(lapply(model$info$group_info, function (x) x$is_delay_in_group[i]))
   
@@ -330,8 +330,8 @@ test_that("update log-normal pars works correctly", {
   
   pars_new <- update_pars_delay1(i, pars, augmented_data, control, model, rng)
   
-  delay_from <- model$info$delay_from[i]
-  delay_to <- model$info$delay_to[i]
+  delay_from <- model$info$delay_info$from[i]
+  delay_to <- model$info$delay_info$to[i]
   is_delay_in_group <- 
     unlist(lapply(model$info$group_info, function (x) x$is_delay_in_group[i]))
   

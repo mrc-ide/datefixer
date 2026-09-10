@@ -162,12 +162,12 @@ initialise_row <- function(individual_data, group, group_delay_map,
 initialise_augmented_data <- function(observed_dates, pars, groups, model_info,
                                       date_range, control, rng) {
   
-  delay_map <- data.frame(from = model_info$delay_from,
-                          to = model_info$delay_to,
-                          distribution = model_info$delay_distribution)
+  delay_map <- data.frame(from = model_info$delay_info$from,
+                          to = model_info$delay_info$to,
+                          distribution = model_info$delay_info$distribution)
   
   
-  delay_pars <- unpack_delay_pars(pars, model_info$delay_distribution)
+  delay_pars <- unpack_delay_pars(pars, model_info$delay_info$distribution)
   delay_pars <- 
     dplyr::bind_rows(delay_pars,
                      dplyr::tibble(shape = numeric(),

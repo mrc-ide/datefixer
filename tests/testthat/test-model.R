@@ -15,16 +15,15 @@ test_that("model info is setup correctly", {
   model_info <- make_model_info(delay_map, dates)
   
   expect_equal(names(model_info),
-               c("delay_from", "delay_to", "delay_distribution", "group_info",
-                 "groups"))
+               c("delay_info", "group_info", "groups"))
   
   delay_from <- c(1, 1, 1, 2, 1, 2)
   delay_to <- c(3, 4, 2, 5, 2, 4)
   delay_distribution <- c("gamma", "gamma", "gamma", "gamma", 
                           "log-normal", "log-normal")
-  expect_equal(model_info$delay_from, delay_from)
-  expect_equal(model_info$delay_to, delay_to)
-  expect_equal(model_info$delay_distribution, delay_distribution)
+  expect_equal(model_info$delay_info$from, delay_from)
+  expect_equal(model_info$delay_info$to, delay_to)
+  expect_equal(model_info$delay_info$distribution, delay_distribution)
   expect_equal(model_info$groups, c(1, 2, 3, 4))
   
   expect_equal(model_info$group_info[[1]]$is_delay_in_group,
@@ -219,8 +218,8 @@ test_that("data and delays are validated correctly without groups", {
   delay_map$group <- 1
   model_info <- make_model_info(delay_map, dates)
   expect_identical(x$model_info, model_info)
-  expect_equal(model_info$delay_from, match(delay_map$from, dates))
-  expect_equal(model_info$delay_to, match(delay_map$to, dates))
+  expect_equal(model_info$delay_info$from, match(delay_map$from, dates))
+  expect_equal(model_info$delay_info$to, match(delay_map$to, dates))
   
   expect_equal(length(model_info$group_info), 1)
   group_info <- model_info$group_info[[1]]
