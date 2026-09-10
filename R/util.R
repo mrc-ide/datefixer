@@ -34,6 +34,31 @@ visFALSE <- function(x) {
   !is.na(x) & x == FALSE
 }
 
+#' Clean group names from delay map
+#' @param raw_group The group element from a delay_map row
+#' @noRd
+clean_group_name <- function(raw_group) {
+  raw_group <- as.character(raw_group)
+  
+  if (length(raw_group) == 1 && grepl("^c\\(", raw_group)) {
+    raw_group <- gsub("^c\\(|\\)$", "", raw_group)
+    raw_group <- gsub("[\"']", "", raw_group)
+    raw_group <- trimws(strsplit(raw_group, ",")[[1]])
+  }
+  
+  clean_group <- paste(raw_group, collapse = ", ")
+  clean_group <- gsub("[-_]", " ", clean_group)
+  
+  tools::toTitleCase(clean_group)
+}
+
+#' Clean event names from delay map
+#' @param raw_event The from/to element from a delay_map row
+#' @noRd
+clean_event_name <- function(raw_event) {
+  clean_name <- gsub("[-_]", " ", as.character(raw_event))
+  tools::toTitleCase(clean_name)
+}
 
 vnapply <- function(...) {
   vapply(..., FUN.VALUE = 1)

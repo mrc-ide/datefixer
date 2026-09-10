@@ -1,6 +1,6 @@
 Package: chronofix
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.9
+Version: 0.0.10
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
 Description: chronofix is an R package for Bayesian estimation of event dates
@@ -15,11 +15,14 @@ Imports:
     cli,
     dplyr,
     generics,
+    ggplot2,
     igraph,
     monty (>= 0.4.0),
     openxlsx,
     purrr,
     stats,
+    ggtext,
+    patchwork,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Remotes: mrc-ide/monty@mrc-6769
