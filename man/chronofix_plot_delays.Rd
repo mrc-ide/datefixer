@@ -4,7 +4,13 @@
 \alias{chronofix_plot_delays}
 \title{Plot Estimated Delay Distributions}
 \usage{
-chronofix_plot_delays(mcmc_output, delay_map, n_points = 200)
+chronofix_plot_delays(
+  mcmc_output,
+  delay_map,
+  n_points = 200,
+  facet_by_group = TRUE,
+  share_x_axis = TRUE
+)
 }
 \arguments{
 \item{mcmc_output}{Output list from \code{chronofix_mcmc_run()}}
@@ -12,6 +18,12 @@ chronofix_plot_delays(mcmc_output, delay_map, n_points = 200)
 \item{delay_map}{The delay_map used for the model setup}
 
 \item{n_points}{Number of points along the x-axis to evaluate (default 200)}
+
+\item{facet_by_group}{Logical, if TRUE, creates a grid with a row per group
+(default TRUE)}
+
+\item{share_x_axis}{Logical, if TRUE, plots all distributions on the same
+x-axis scale (default TRUE)}
 }
 \description{
 Plot Estimated Delay Distributions
